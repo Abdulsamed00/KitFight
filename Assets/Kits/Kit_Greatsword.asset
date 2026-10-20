@@ -20,5 +20,14 @@ MonoBehaviour:
   - {fileID: 3094330708855449807, guid: 81ae9e97c51ac17498f6e7ccda0bb15d, type: 3}
   - {fileID: 3094330708855449807, guid: d306ea46c5e8f714fbf66ad0800e3bbd, type: 3}
   - {fileID: 3094330708855449807, guid: a4c3612a3929d1242a7101211f988b85, type: 3}
+  offhandPrefab: {fileID: 0}
+  offhandEuler: {x: 0, y: 0, z: 0}
+  blockClip: {fileID: 3094330708855449807, guid: 9745f964b8ad31e4ab9c01fcc812456c, type: 3}
+  blockHitClip: {fileID: 3094330708855449807, guid: 8d97c94a4687ae74d9c8926b19a0955d, type: 3}
+  damage: 20
+  range: 2.5
+  arc: 120
+  hitStart: 0.4
+  knockback: 5
   attackSpeed: 1
   moveSpeedMultiplier: 0.95

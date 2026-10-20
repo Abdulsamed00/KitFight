@@ -1,6 +1,6 @@
 # KitFight
 
-Unity 6.3 LTS (6000.3.26f1), URP, new Input System. Third-person 3D action combat game where each player picks a class "kit". Multiplayer comes last; combat is built and tuned single-player first.
+Unity 6.3 LTS (6000.3.26f1), URP, new Input System. 3D action combat game (2-player local duel) where each player picks a class "kit".
 
 - GitHub: https://github.com/Abdulsamed00/KitFight (branch `main`)
 - Owner's language is Turkish; reply in Turkish.
@@ -8,30 +8,31 @@ Unity 6.3 LTS (6000.3.26f1), URP, new Input System. Third-person 3D action comba
 
 ## Decisions made
 
-- 3D, third-person action camera (over-the-shoulder orbit), class-based kits.
-- Kit = class/character (own weapon, abilities, stats), chosen before the match.
-- Roadmap: combat core with assets -> animations/VFX -> lock-on -> kit select menu -> multiplayer (last).
-- The owner adds art assets themselves. `Assets/PixPlays` (Elemental AOE/Auras/Beams/Blast/Projectiles/Shields VFX, prefabs, FBX, anims) is already in the project.
+- Now a **2-player local duel on one screen** (shared camera, 3D arena, free movement). Online multiplayer comes later.
+- Kit = weapon set + animator + combat numbers (`KitData`), chosen in the lobby before the match.
+- Gamepad supported; any mix of devices works (devices are claimed in the lobby).
+- The owner adds art assets themselves. `Assets/PixPlays` (VFX) is in the project but unused so far; `Assets/Kevin Iglesias` is the character/animation base.
 
 ## Architecture (`Assets/Scripts/Kit/`)
 
-The old combat prototype (CombatController, AI, HUD, Knight/Brute/Rogue) was deleted. Current base is the Kevin Iglesias "Human Melee Animations" asset (`Assets/Kevin Iglesias`), male model `HumanM_Model.fbx`.
-
-- `KitData` (ScriptableObject): name, weapon prefab, AnimatorController, combo clips, attack speed, move speed multiplier. Assets in `Assets/Kits/` (Sword, Dagger, Greatsword, Warhammer, Polearm) are generated.
-- `PlayerMotor`: camera-relative CharacterController movement (Walk/Run/Sprint gaits), sets animator `Speed` (0 idle, 1 walk, 2 run, 3 sprint). No input code.
-- `PlayerCombat`: command API `Attack()`; combo queue; plays animator states `Attack0..N` via CrossFade, returns to `Locomotion`. No input code.
-- `KitSwitcher`: `Select(i)` swaps weapon (parented to bone `B-handProp.R`), controller and speed values.
-- `PlayerInput`: local input only (Input System, polled) -> motor/combat/kit commands.
-- `ThirdPersonCamera`, `KitHUD` (throwaway IMGUI).
-- Editor: `Assets/Editor/KitSceneBuilder.cs`, menu **KitFight > Build Test Scene** regenerates controllers, KitData and `Assets/Scenes/KitTest.unity` (run it after changing the kit table).
+- `KitData` (ScriptableObject): weapons (main/off hand), AnimatorController, combo clips, block + block-hit clips, damage/range/arc/hitStart/knockback, attack/move speed. Assets in `Assets/Kits/` are generated.
+- `InputSource`: one control scheme (Keyboard1 = WASD/J/K, Keyboard2 = arrows/,/. or numpad, or a Gamepad), polled once per frame. `PlayerInput` binds one source to a player and issues commands.
+- `PlayerMotor`: camera-relative movement, gaits, knockback impulse, `locked` flag (stun/dead/not fighting), faces the opponent when idle/attacking/blocking.
+- `PlayerCombat`: `Attack()` / `SetBlock(bool)` commands, combo queue (attacks always finish), cone hit scan at `hitStart`, directional block (`blockAngle`), flinch only when not mid-swing, death. Static `All` list. Animator states: `Locomotion`, `Attack0..N`, `Block`, `BlockHit`, `Hit`, `Death`.
+- `Health`, `KitSwitcher` (`Select`/`Cycle`), `PlayerTint` (P1 blue, P2 red), `FightCamera` (shared, fixed yaw, zooms with distance).
+- `GameManager`: Lobby (join + kit select) -> Countdown -> Fight -> RoundOver -> MatchOver (first to 2 wins); throwaway IMGUI HUD.
+- Editor: `Assets/Editor/KitSceneBuilder.cs`, menu **KitFight > Build Test Scene** regenerates controllers, KitData and `Assets/Scenes/KitTest.unity`.
 
 ## Multiplayer rule
 
-Keep input separate from game logic. Everything that changes state goes through `PlayerCombat` / `PlayerMotor` / `KitSwitcher` commands so they can later be sent to / validated by a server. Do not put rules in `PlayerInput`.
+Keep input separate from game logic. Everything that changes state goes through `PlayerCombat` / `PlayerMotor` / `KitSwitcher` commands so they can later be sent to / validated by a server. Do not put rules in `PlayerInput` / `InputSource`.
 
-## Controls (test scene `Assets/Scenes/KitTest.unity`)
+## Controls (scene `Assets/Scenes/KitTest.unity`)
 
-WASD move (run), Shift sprint, Ctrl walk, LMB attack (hold clicks to chain combo), 1-5 swap kit (Sword, Dagger, Greatsword, Warhammer, Polearm), Esc frees the cursor.
+Lobby: press attack on a device to join, left/right = pick kit, attack = ready, block = unready/leave. Fight: move, attack (click during a swing queues the next one), hold block (all kits can block/parry; stand still while blocking).
+- Keyboard 1: WASD, Shift sprint, J/Space attack, K block.
+- Keyboard 2: arrows, R-Shift/Numpad0 sprint, `,`/Numpad1 attack, `.`/Numpad2 block.
+- Gamepad: left stick/dpad, RB/L3 sprint, A/X/RT attack, LT/LB/B block.
 
 ## Working with Unity from Claude
 
@@ -44,6 +45,6 @@ WASD move (run), Shift sprint, Ctrl walk, LMB attack (hold clicks to chain combo
 
 ## Status
 
-Done: Kevin Iglesias kit test scene (empty arena, 5 weapon kits, run/sprint/walk, combo attack, 1-5 switch). Compiles clean; kit switching, attack and movement verified in Play mode via code, not hand-played yet.
+Done: 2-player lobby/match flow, hit/block/death, 5 kits, shared camera, gamepad input. Hit, block and kill verified in Play mode through code; gamepad and the IMGUI HUD were not tested by hand (no controller attached in the test session).
 
-Next: tune animation/weapon offsets by hand-play, then shield/block, dodge, hit detection + dummy targets, lock-on, kit select menu, multiplayer (see the `unity:setup-multiplayer-services` skill).
+Next: hand-tune per-kit `hitStart`/range/damage, dodge, strafe/lock-on animations, hit VFX (PixPlays), proper UI, online multiplayer (see the `unity:setup-multiplayer-services` skill).

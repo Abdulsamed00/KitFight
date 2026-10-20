@@ -17,6 +17,9 @@ namespace KitFight
 
         [HideInInspector] public float speedMultiplier = 1f;
         [HideInInspector] public bool attacking;
+        [HideInInspector] public bool blocking;
+        [HideInInspector] public bool locked;          // stunned / dead / round not running
+        [HideInInspector] public Transform faceTarget; // opponent
 
         CharacterController cc;
         Animator anim;
@@ -25,6 +28,7 @@ namespace KitFight
         Gait gait = Gait.Run;
         float verticalVel;
         float animSpeed;
+        Vector3 impulse;
 
         static readonly int SpeedHash = Animator.StringToHash("Speed");
 
@@ -45,11 +49,37 @@ namespace KitFight
             gait = g;
         }
 
-        public void FaceCamera()
+        public void AddImpulse(Vector3 v) => impulse += v;
+
+        public void ClearImpulse() => impulse = Vector3.zero;
+
+        public void Teleport(Vector3 pos, Quaternion rot)
         {
-            if (!cam) return;
-            var f = Vector3.ProjectOnPlane(cam.forward, Vector3.up);
+            cc.enabled = false;
+            transform.SetPositionAndRotation(pos, rot);
+            cc.enabled = true;
+            verticalVel = 0f;
+            impulse = Vector3.zero;
+        }
+
+        /// <summary>Snap to face the opponent (used when a swing starts).</summary>
+        public void FaceOpponent()
+        {
+            var f = FlatToTarget();
             if (f.sqrMagnitude > 0.001f) transform.rotation = Quaternion.LookRotation(f);
+        }
+
+        Vector3 FlatToTarget()
+        {
+            if (!faceTarget) return Vector3.zero;
+            return Vector3.ProjectOnPlane(faceTarget.position - transform.position, Vector3.up);
+        }
+
+        void TurnTowards(Vector3 dir)
+        {
+            if (dir.sqrMagnitude < 0.001f) return;
+            var target = Quaternion.LookRotation(dir);
+            transform.rotation = Quaternion.Slerp(transform.rotation, target, 1f - Mathf.Exp(-turnSpeed * Time.deltaTime));
         }
 
         void Update()
@@ -57,7 +87,7 @@ namespace KitFight
             if (!cam && Camera.main) cam = Camera.main.transform;
 
             Vector3 dir = Vector3.zero;
-            if (cam && moveInput.sqrMagnitude > 0.0001f)
+            if (cam && moveInput.sqrMagnitude > 0.0001f && !locked)
             {
                 var f = Vector3.ProjectOnPlane(cam.forward, Vector3.up).normalized;
                 var r = Vector3.ProjectOnPlane(cam.right, Vector3.up).normalized;
@@ -66,21 +96,24 @@ namespace KitFight
 
             float top = gait == Gait.Sprint ? sprintSpeed : gait == Gait.Walk ? walkSpeed : runSpeed;
             top *= speedMultiplier * (attacking ? attackMoveFactor : 1f);
-            float mag = moveInput.magnitude;
+            if (blocking || locked) top = 0f;
+            float mag = locked ? 0f : moveInput.magnitude;
             Vector3 horizontal = dir * top * mag;
 
-            if (dir != Vector3.zero && !attacking)
+            if (!locked)
             {
-                var target = Quaternion.LookRotation(dir);
-                transform.rotation = Quaternion.Slerp(transform.rotation, target, 1f - Mathf.Exp(-turnSpeed * Time.deltaTime));
+                if (attacking || blocking) TurnTowards(FlatToTarget());
+                else if (dir != Vector3.zero) TurnTowards(dir);
+                else TurnTowards(FlatToTarget());
             }
 
             if (cc.isGrounded && verticalVel < 0f) verticalVel = -2f;
             verticalVel += gravity * Time.deltaTime;
-            cc.Move((horizontal + Vector3.up * verticalVel) * Time.deltaTime);
+            impulse = Vector3.MoveTowards(impulse, Vector3.zero, 22f * Time.deltaTime);
+            cc.Move((horizontal + impulse + Vector3.up * verticalVel) * Time.deltaTime);
 
             // Animator blend value: 0 idle, 1 walk, 2 run, 3 sprint
-            float targetBlend = mag < 0.1f ? 0f : (float)gait;
+            float targetBlend = (mag < 0.1f || blocking) ? 0f : (float)gait;
             animSpeed = Mathf.MoveTowards(animSpeed, targetBlend, 8f * Time.deltaTime);
             if (anim) anim.SetFloat(SpeedHash, animSpeed);
         }
