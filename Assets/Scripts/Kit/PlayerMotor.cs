@@ -13,7 +13,7 @@ namespace KitFight
         public float sprintSpeed = 7f;
         public float turnSpeed = 14f;
         public float gravity = -20f;
-        [Range(0f, 1f)] public float attackMoveFactor = 0.25f;
+        [Range(0f, 1f)] public float attackMoveFactor = 0.7f;
 
         [HideInInspector] public float speedMultiplier = 1f;
         [HideInInspector] public bool attacking;
@@ -27,10 +27,14 @@ namespace KitFight
         Vector2 moveInput;
         Gait gait = Gait.Run;
         float verticalVel;
-        float animSpeed;
+        Vector2 animMove;
         Vector3 impulse;
 
-        static readonly int SpeedHash = Animator.StringToHash("Speed");
+        static readonly int MoveXHash = Animator.StringToHash("MoveX");
+        static readonly int MoveZHash = Animator.StringToHash("MoveZ");
+
+        /// <summary>True while the player is actively steering (used to split attacks onto the upper body).</summary>
+        public bool HasMoveInput => !locked && !blocking && moveInput.sqrMagnitude > 0.01f;
 
         void Awake()
         {
@@ -75,6 +79,20 @@ namespace KitFight
             return Vector3.ProjectOnPlane(faceTarget.position - transform.position, Vector3.up);
         }
 
+        /// <summary>Opponent direction on the ground, or zero if none.</summary>
+        public Vector3 DirectionToOpponent() => FlatToTarget().normalized;
+
+        public float DistanceToOpponent() => FlatToTarget().magnitude;
+
+        /// <summary>Camera-relative world direction for a stick/key vector (zero if no input).</summary>
+        public Vector3 WorldDirection(Vector2 input)
+        {
+            if (!cam || input.sqrMagnitude < 0.0001f) return Vector3.zero;
+            var f = Vector3.ProjectOnPlane(cam.forward, Vector3.up).normalized;
+            var r = Vector3.ProjectOnPlane(cam.right, Vector3.up).normalized;
+            return (f * input.y + r * input.x).normalized;
+        }
+
         void TurnTowards(Vector3 dir)
         {
             if (dir.sqrMagnitude < 0.001f) return;
@@ -112,10 +130,16 @@ namespace KitFight
             impulse = Vector3.MoveTowards(impulse, Vector3.zero, 22f * Time.deltaTime);
             cc.Move((horizontal + impulse + Vector3.up * verticalVel) * Time.deltaTime);
 
-            // Animator blend value: 0 idle, 1 walk, 2 run, 3 sprint
-            float targetBlend = (mag < 0.1f || blocking) ? 0f : (float)gait;
-            animSpeed = Mathf.MoveTowards(animSpeed, targetBlend, 8f * Time.deltaTime);
-            if (anim) anim.SetFloat(SpeedHash, animSpeed);
+            // Animator blend: local move direction * gait (0 idle, 1 walk, 2 run, 3 sprint).
+            float gaitValue = (mag < 0.1f || blocking || locked) ? 0f : (float)gait * Mathf.Clamp01(mag);
+            var local = dir == Vector3.zero ? Vector3.zero : transform.InverseTransformDirection(dir);
+            var targetMove = new Vector2(local.x, local.z) * gaitValue;
+            animMove = Vector2.MoveTowards(animMove, targetMove, 10f * Time.deltaTime);
+            if (anim)
+            {
+                anim.SetFloat(MoveXHash, animMove.x);
+                anim.SetFloat(MoveZHash, animMove.y);
+            }
         }
     }
 }

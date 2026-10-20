@@ -56,6 +56,8 @@ namespace KitFight
                     motor = p.GetComponent<PlayerMotor>(),
                 };
             }
+            var cam = FindFirstObjectByType<FightCamera>();
+            if (cam) { cam.p1 = slots[0].motor.transform; cam.p2 = slots[1].motor.transform; }
             slots[0].motor.faceTarget = slots[1].motor.transform;
             slots[1].motor.faceTarget = slots[0].motor.transform;
         }
@@ -171,6 +173,7 @@ namespace KitFight
             if (d0 && d1) { banner = "BERABERE"; return; }
             int winner = d0 ? 1 : 0;
             slots[winner].wins++;
+            slots[winner].combat.Celebrate();
             banner = $"OYUNCU {winner + 1} ROUNDU KAZANDI";
         }
 
@@ -236,6 +239,7 @@ namespace KitFight
 
             DrawFighterLabels();
             for (int i = 0; i < 2; i++) DrawBar(i, W);
+            if (phase == Phase.Countdown || phase == Phase.Fight) DrawLegend(W);
 
             switch (phase)
             {
@@ -272,6 +276,14 @@ namespace KitFight
             float fx = i == 0 ? x : x + bw - fw; // P2 drains toward the edge
             Box(new Rect(fx, y, fw, bh), colors[i]);
 
+            // guard meter (fills while blocking; full = guard break)
+            float g = s.combat.GuardFraction;
+            if (g > 0.01f)
+            {
+                float gw = bw * g;
+                Box(new Rect(i == 0 ? x : x + bw - gw, y + bh + 2, gw, 6), Color.Lerp(Color.white, new Color(1f, 0.5f, 0f), g));
+            }
+
             string kitName = s.kit.Current != null ? s.kit.Current.displayName : "-";
             var a = i == 0 ? TextAnchor.UpperLeft : TextAnchor.UpperRight;
             Shadowed(new Rect(x, y + bh + 6, bw, 36), $"OYUNCU {i + 1} - {kitName}", new GUIStyle(label) { alignment = a, fontSize = 22 }, colors[i]);
@@ -281,6 +293,18 @@ namespace KitFight
             {
                 float px = i == 0 ? x + w * 34 : x + bw - 28 - w * 34;
                 Box(new Rect(px, y + bh + 48, 24, 24), w < s.wins ? Color.yellow : new Color(1, 1, 1, 0.25f));
+            }
+        }
+
+        void DrawLegend(float W)
+        {
+            const float lw = 700f;
+            for (int i = 0; i < 2; i++)
+            {
+                if (slots[i].src == null) continue;
+                var r = new Rect(i == 0 ? 50f : W - 50f - lw, 1030f, lw, 34f);
+                var st = new GUIStyle(small) { alignment = i == 0 ? TextAnchor.MiddleLeft : TextAnchor.MiddleRight, fontSize = 17 };
+                Shadowed(r, slots[i].src.ControlsText, st, new Color(1f, 1f, 1f, 0.75f));
             }
         }
 

@@ -9,6 +9,8 @@ namespace KitFight
         public bool controlEnabled;
 
         PlayerMotor motor;
+        Vector2 lastMove;
+        float lastMoveTime = -10f;
         PlayerCombat combat;
 
         void Awake()
@@ -33,6 +35,13 @@ namespace KitFight
             else if (source.kind == InputSource.Kind.Gamepad && source.Move.magnitude < 0.55f) gait = PlayerMotor.Gait.Walk;
             motor.SetMove(source.Move, gait);
 
+            // Remember the last direction briefly so releasing the stick a hair before pressing dodge still counts.
+            if (source.Move.magnitude > 0.3f) { lastMove = source.Move; lastMoveTime = Time.time; }
+            if (source.DodgeDown)
+            {
+                var dir = source.Move.magnitude > 0.3f ? source.Move : (Time.time - lastMoveTime < 0.2f ? lastMove : Vector2.zero);
+                combat.Dodge(dir);
+            }
             if (source.AttackDown) combat.Attack();
             combat.SetBlock(source.BlockHeld);
         }

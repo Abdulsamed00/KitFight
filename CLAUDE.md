@@ -17,9 +17,9 @@ Unity 6.3 LTS (6000.3.26f1), URP, new Input System. 3D action combat game (2-pla
 
 - `KitData` (ScriptableObject): weapons (main/off hand), AnimatorController, combo clips, block + block-hit clips, damage/range/arc/hitStart/knockback, attack/move speed. Assets in `Assets/Kits/` are generated.
 - `InputSource`: one control scheme (Keyboard1 = WASD/J/K, Keyboard2 = arrows/,/. or numpad, or a Gamepad), polled once per frame. `PlayerInput` binds one source to a player and issues commands.
-- `PlayerMotor`: camera-relative movement, gaits, knockback impulse, `locked` flag (stun/dead/not fighting), faces the opponent when idle/attacking/blocking.
-- `PlayerCombat`: `Attack()` / `SetBlock(bool)` commands, combo queue (attacks always finish), cone hit scan at `hitStart`, directional block (`blockAngle`), flinch only when not mid-swing, death. Static `All` list. Animator states: `Locomotion`, `Attack0..N`, `Block`, `BlockHit`, `Hit`, `Death`.
-- `Health`, `KitSwitcher` (`Select`/`Cycle`), `PlayerTint` (P1 blue, P2 red), `FightCamera` (shared, fixed yaw, zooms with distance).
+- `PlayerMotor`: camera-relative movement, gaits, knockback impulse, `locked` flag (stun/dead/not fighting), faces the opponent when idle/attacking/blocking. Moves at 70% speed while attacking. Drives `MoveX`/`MoveZ` (local move dir * gait) for the 8-direction `Locomotion` blend tree (Kevin Walk/Run/Sprint direction clips), so strafing while facing the opponent animates correctly.
+- `PlayerCombat`: `Attack()` / `SetBlock(bool)` commands, combo queue (attacks always finish), cone hit scan at `hitStart`, directional block (`blockAngle`), flinch only when not mid-swing, death. Static `All` list. Animator layer 1 `UpperBody` (Kevin `Human Body Upper Mask`) holds `Empty` + `Attack0..N`: attacks always play there; while moving the base layer stays in `Locomotion` (legs run), when standing still the base layer plays the attack full-body too. Base layer states: `Locomotion`, `Attack0..N`, `Block`, `BlockHit`, `BlockImpact`, `Hit`, `HitHeavy`, `Stunned`, `KnockedDown`, `GettingUp`, `Victory`, `Death`, `Dodge`, `DodgeBack`, `DodgeRight`, `DodgeLeft`. Rules: hits >= 14 dmg use `HitHeavy`; the last hit of a combo (kit damage >= 12, i.e. not Dagger) knocks down (invulnerable until up); blocked damage fills a guard meter, 45 = guard break (`Stunned`); blocked hits >= 20 dmg play `BlockImpact`; the round winner plays `Victory` (`Celebrate()`). Hit feel: hit-stop (animator freeze), camera shake, spark particles (`HitFeedback`), white flash (`PlayerTint.Flash`), lunge on swing, slow-mo on the killing blow. `Dodge(moveInput)`: dash impulse in the input direction (or away from the opponent), i-frames, cooldown; cannot start mid-attack.
+- `Health`, `KitSwitcher` (`Select`/`Cycle`), `PlayerTint` (P1 blue, P2 red), `FightCamera` (shared; yaw follows the P1->P2 axis so P1 is always left and P2 right; zooms with distance; `Shake()`).
 - `GameManager`: Lobby (join + kit select) -> Countdown -> Fight -> RoundOver -> MatchOver (first to 2 wins); throwaway IMGUI HUD.
 - Editor: `Assets/Editor/KitSceneBuilder.cs`, menu **KitFight > Build Test Scene** regenerates controllers, KitData and `Assets/Scenes/KitTest.unity`.
 
@@ -29,16 +29,20 @@ Keep input separate from game logic. Everything that changes state goes through 
 
 ## Controls (scene `Assets/Scenes/KitTest.unity`)
 
-Lobby: press attack on a device to join, left/right = pick kit, attack = ready, block = unready/leave. Fight: move, attack (click during a swing queues the next one), hold block (all kits can block/parry; stand still while blocking).
-- Keyboard 1: WASD, Shift sprint, J/Space attack, K block.
-- Keyboard 2: arrows, R-Shift/Numpad0 sprint, `,`/Numpad1 attack, `.`/Numpad2 block.
-- Gamepad: left stick/dpad, RB/L3 sprint, A/X/RT attack, LT/LB/B block.
+Lobby: press attack on a device to join, left/right = pick kit, attack = ready, block = unready/leave. Fight: move, attack (click during a swing queues the next one), hold block (all kits can block/parry; stand still while blocking), dodge (dash + i-frames; clip chosen by direction relative to the opponent: back/right/left(mirrored) = Mixamo `Assets/Mixamo/Mixamo@Dodge{Back,Right}.fbx`, forward = Kevin Iglesias `Dodge01`). Mixamo FBX in `Assets/Mixamo/` are auto-imported as Humanoid with root height/rotation baked into the pose (`MixamoImportSettings`); downloaded from mixamo.com as FBX Binary, Without Skin, 30 fps.
+- Keyboard 1: WASD, Shift sprint, J/Space attack, K block, L dodge.
+- Keyboard 2: arrows, R-Shift/Numpad0 sprint, `,`/Numpad1 attack, `.`/Numpad2 block, `/`/Numpad3 dodge.
+- Gamepad: left stick/dpad, RB/L3 sprint, A/X/RT attack, LT/LB/B block, Y/R3 dodge.
+
+Animation speeds: attack speed lives in `KitSpec.attackSpeed`; reaction/dodge state speeds are set in `KitSceneBuilder` and must stay matched to the timers in `PlayerCombat` (stun, knockdown, guard break, dodge).
 
 ## Working with Unity from Claude
 
 - The Unity MCP tools (`Unity_RunCommand`, `Unity_GetConsoleLogs`, ...) drive the open Editor. After script edits the Editor recompiles and the MCP connection drops for ~30 s ("Unity not detected"); wait and retry.
 - `Unity_RunCommand` code needs `internal class CommandScript : IRunCommand`.
 - `Unity_Camera_Capture` fails unless a Scene View window is open.
+- When the Editor is unfocused the Play loop barely ticks; advance it with `EditorApplication.isPaused = true` + `EditorApplication.Step()` in a loop (with `Time.captureDeltaTime = 1/30`).
+- Play-mode tests via `Unity_RunCommand` are flaky (a RunCommand compile right after `EnterPlaymode` can abort Play). Reliable way: a temporary `[RuntimeInitializeOnLoadMethod]` self-test that writes a result file in `Temp/`, then read the file.
 - `Library`, `Temp`, `obj`, `Logs`, `UserSettings`, `*.csproj`, `*.sln` are gitignored. The nested `KitFight/` folder (a stray clone with its own `.git`) is also ignored.
 - No Git LFS yet; `Assets/PixPlays` is ~110 MB. Consider LFS before adding more large binaries.
 - Installed skill: `unity-animation` (`~/.agents/skills`) for Animator work; takes effect in a new session.

@@ -13,6 +13,9 @@ namespace KitFight.EditorTools
         const string Anim = Root + "Animations/Male/";
         const string Weapons = Root + "Unity Demo Scenes/Human Melee Animations/Prefabs/Weapons/";
         const string ModelPath = Root + "Models/HumanM_Model.fbx";
+        // Swap this path (relative to Animations/Male/, no extension) to use another dodge clip, e.g. a Mixamo one.
+        const string DodgeClipPath = "Combat/HumanM@Dodge01";
+        const string UpperMaskPath = Root + "Models/Avatar Masks/Human Body Upper Mask.mask";
         const string KitsDir = "Assets/Kits";
         const string ScenePath = "Assets/Scenes/KitTest.unity";
 
@@ -31,24 +34,24 @@ namespace KitFight.EditorTools
                 offhand = "Human_Shield",
                 blockLoop = "Combat/Shield/HumanM@BlockShield01 - Loop", blockHit = "Combat/Shield/HumanM@BlockShield01 - Hit",
                 combo = new[] { "Combat/1H/HumanM@Attack1H01_R", "Combat/1H/HumanM@Attack1H02_R", "Combat/1H/HumanM@Attack1H03_R" },
-                attackSpeed = 1f, moveMult = 1f, damage = 12f, range = 2.1f, knockback = 3f, hitStart = 0.35f },
+                attackSpeed = 1.3f, moveMult = 1f, damage = 12f, range = 2.1f, knockback = 3f, hitStart = 0.35f },
             new KitSpec { name = "Dagger", weapon = "Human_Dagger", idle = "Combat/1H/HumanM@CombatIdle1H01",
                 offhand = "Human_Dagger", offhandEuler = new Vector3(0f, 180f, 0f),
                 blockLoop = "Combat/1H/HumanM@ParryDW01 - Loop", blockHit = "Combat/1H/HumanM@ParryDW01 - Hit",
                 combo = new[] { "Combat/1H/HumanM@Attack1H04_L", "Combat/1H/HumanM@Attack1H04_R", "Combat/1H/HumanM@Attack1H05_L", "Combat/1H/HumanM@Attack1H05_R", "Combat/1H/HumanM@AttackDW01", "Combat/1H/HumanM@AttackDW02" },
-                attackSpeed = 1.3f, moveMult = 1.15f, damage = 7f, range = 1.7f, knockback = 1.5f, hitStart = 0.35f },
+                attackSpeed = 1.6f, moveMult = 1.15f, damage = 7f, range = 1.7f, knockback = 1.5f, hitStart = 0.35f },
             new KitSpec { name = "Greatsword", weapon = "Human_Greatsword", idle = "Combat/2H/HumanM@CombatIdle2H01",
                 blockLoop = "Combat/2H/HumanM@Parry2H01 - Loop", blockHit = "Combat/2H/HumanM@Parry2H01 - Hit",
                 combo = new[] { "Combat/2H/HumanM@Attack2H01", "Combat/2H/HumanM@Attack2H02", "Combat/2H/HumanM@Attack2H03", "Combat/2H/HumanM@Attack2H04" },
-                attackSpeed = 1f, moveMult = 0.95f, damage = 20f, range = 2.5f, knockback = 5f, hitStart = 0.4f },
+                attackSpeed = 1.25f, moveMult = 0.95f, damage = 20f, range = 2.5f, knockback = 5f, hitStart = 0.4f },
             new KitSpec { name = "Warhammer", weapon = "Human_Warhammer", idle = "Combat/2H/HumanM@CombatIdle2H01",
                 blockLoop = "Combat/2H/HumanM@Parry2H01 - Loop", blockHit = "Combat/2H/HumanM@Parry2H01 - Hit",
                 combo = new[] { "Combat/2H/HumanM@Attack2H02", "Combat/2H/HumanM@Attack2H04", "Combat/2H/HumanM@Attack2H01" },
-                attackSpeed = 0.8f, moveMult = 0.85f, damage = 24f, range = 2.3f, knockback = 6.5f, hitStart = 0.45f },
+                attackSpeed = 1.05f, moveMult = 0.85f, damage = 24f, range = 2.3f, knockback = 6.5f, hitStart = 0.45f },
             new KitSpec { name = "Polearm", weapon = "Human_Polearm", idle = "Combat/Polearm/HumanM@CombatIdlePolearm01",
                 blockLoop = "Combat/Polearm/HumanM@ParryPolearm01 - Loop", blockHit = "Combat/Polearm/HumanM@ParryPolearm01 - Hit",
                 combo = new[] { "Combat/Polearm/HumanM@AttackPolearm01", "Combat/Polearm/HumanM@AttackPolearm02", "Combat/Polearm/HumanM@AttackPolearm03", "Combat/Polearm/HumanM@AttackPolearm04" },
-                attackSpeed = 1f, moveMult = 1f, damage = 14f, range = 3f, knockback = 3.5f, hitStart = 0.4f },
+                attackSpeed = 1.3f, moveMult = 1f, damage = 14f, range = 3f, knockback = 3.5f, hitStart = 0.4f },
         };
 
         [MenuItem("KitFight/Build Test Scene")]
@@ -59,9 +62,27 @@ namespace KitFight.EditorTools
             Debug.Log("KitFight: scene built -> " + ScenePath);
         }
 
-        static AnimationClip LoadClip(string relPath)
+        static void AddState(AnimatorStateMachine sm, string name, Motion motion, float speed)
         {
-            string path = Anim + relPath + ".fbx";
+            var st = sm.AddState(name);
+            st.motion = motion;
+            st.speed = speed;
+        }
+
+        static void AddDirections(BlendTree tree, string prefix, float radius, bool sprint)
+        {
+            const float d = 0.7071f;
+            var dirs = sprint
+                ? new (string, Vector2)[] { ("Forward", new Vector2(0, 1)), ("ForwardLeft", new Vector2(-d, d)), ("ForwardRight", new Vector2(d, d)), ("Left", new Vector2(-1, 0)), ("Right", new Vector2(1, 0)) }
+                : new (string, Vector2)[] { ("Forward", new Vector2(0, 1)), ("Backward", new Vector2(0, -1)), ("Left", new Vector2(-1, 0)), ("Right", new Vector2(1, 0)),
+                                            ("ForwardLeft", new Vector2(-d, d)), ("ForwardRight", new Vector2(d, d)), ("BackwardLeft", new Vector2(-d, -d)), ("BackwardRight", new Vector2(d, -d)) };
+            foreach (var (name, dir) in dirs) tree.AddChild(LoadClip(prefix + name), dir * radius);
+        }
+
+        static AnimationClip LoadClip(string relPath) => LoadClipAt(Anim + relPath + ".fbx");
+
+        static AnimationClip LoadClipAt(string path)
+        {
             foreach (var o in AssetDatabase.LoadAllAssetsAtPath(path))
                 if (o is AnimationClip c && !c.name.StartsWith("__preview__")) return c;
             Debug.LogError("Clip not found: " + path);
@@ -71,11 +92,18 @@ namespace KitFight.EditorTools
         static KitData[] BuildKits()
         {
             Directory.CreateDirectory(KitsDir);
-            var walk = LoadClip("Movement/Walk/HumanM@Walk01_Forward");
-            var run = LoadClip("Movement/Run/HumanM@Run01_Forward");
-            var sprint = LoadClip("Movement/Sprint/HumanM@Sprint01_Forward");
+            var upperMask = AssetDatabase.LoadAssetAtPath<AvatarMask>(UpperMaskPath);
             var hit = LoadClip("Combat/HumanM@CombatDamage01");
             var death = LoadClip("Combat/HumanM@CombatDeath01");
+            var dodge = LoadClip(DodgeClipPath);
+            var dodgeBack = LoadClipAt("Assets/Mixamo/Mixamo@DodgeBack.fbx");
+            var dodgeRight = LoadClipAt("Assets/Mixamo/Mixamo@DodgeRight.fbx");
+            var hitHeavy = LoadClipAt("Assets/Mixamo/Mixamo@HitHeavy.fbx");
+            var blockImpact = LoadClipAt("Assets/Mixamo/Mixamo@BlockImpact.fbx");
+            var stunned = LoadClipAt("Assets/Mixamo/Mixamo@Stunned.fbx");
+            var knockedDown = LoadClipAt("Assets/Mixamo/Mixamo@KnockedDown.fbx");
+            var gettingUp = LoadClipAt("Assets/Mixamo/Mixamo@GettingUp.fbx");
+            var victory = LoadClipAt("Assets/Mixamo/Mixamo@Victory.fbx");
 
             var kits = new KitData[Specs.Length];
             for (int i = 0; i < Specs.Length; i++)
@@ -89,17 +117,20 @@ namespace KitFight.EditorTools
                 string ctrlPath = $"{KitsDir}/{s.name}.controller";
                 AssetDatabase.DeleteAsset(ctrlPath);
                 var ctrl = AnimatorController.CreateAnimatorControllerAtPath(ctrlPath);
-                ctrl.AddParameter("Speed", AnimatorControllerParameterType.Float);
+                ctrl.AddParameter("MoveX", AnimatorControllerParameterType.Float);
+                ctrl.AddParameter("MoveZ", AnimatorControllerParameterType.Float);
                 ctrl.AddParameter(new AnimatorControllerParameter { name = "AttackSpeed", type = AnimatorControllerParameterType.Float, defaultFloat = 1f });
 
+                // 8-direction locomotion: (MoveX, MoveZ) = local move direction * gait (1 walk, 2 run, 3 sprint).
+                // Facing the opponent while moving sideways/back (attacking, blocking) then strafes properly.
                 ctrl.CreateBlendTreeInController("Locomotion", out BlendTree tree);
-                tree.blendType = BlendTreeType.Simple1D;
-                tree.blendParameter = "Speed";
-                tree.useAutomaticThresholds = false;
-                tree.AddChild(LoadClip(s.idle), 0f);
-                tree.AddChild(walk, 1f);
-                tree.AddChild(run, 2f);
-                tree.AddChild(sprint, 3f);
+                tree.blendType = BlendTreeType.FreeformDirectional2D;
+                tree.blendParameter = "MoveX";
+                tree.blendParameterY = "MoveZ";
+                tree.AddChild(LoadClip(s.idle), Vector2.zero);
+                AddDirections(tree, "Movement/Walk/HumanM@Walk01_", 1f, false);
+                AddDirections(tree, "Movement/Run/HumanM@Run01_", 2f, false);
+                AddDirections(tree, "Movement/Sprint/HumanM@Sprint01_", 3f, true);
 
                 var sm = ctrl.layers[0].stateMachine;
                 sm.defaultState = sm.states[0].state;
@@ -111,9 +142,38 @@ namespace KitFight.EditorTools
                     st.speedParameter = "AttackSpeed";
                 }
                 sm.AddState("Block").motion = blockClip;
-                sm.AddState("BlockHit").motion = blockHitClip;
-                sm.AddState("Hit").motion = hit;
+                // Reaction speeds are matched to the timers in PlayerCombat; change both together.
+                AddState(sm, "BlockHit", blockHitClip, 1.3f);
+                AddState(sm, "Hit", hit, 1.3f);
                 sm.AddState("Death").motion = death;
+                AddState(sm, "Dodge", dodge, 1.4f); // forward (Kevin Iglesias)
+                AddState(sm, "DodgeBack", dodgeBack, 3f);
+                AddState(sm, "DodgeRight", dodgeRight, 2f);
+                var left = sm.AddState("DodgeLeft"); left.motion = dodgeRight; left.speed = 2f; left.mirror = true;
+                AddState(sm, "HitHeavy", hitHeavy, 1.9f);
+                AddState(sm, "BlockImpact", blockImpact, 1.6f);
+                AddState(sm, "Stunned", stunned, 2f);
+                AddState(sm, "KnockedDown", knockedDown, 2.2f);
+                AddState(sm, "GettingUp", gettingUp, 2.4f);
+                AddState(sm, "Victory", victory, 1f);
+
+                // Upper-body layer: attacks play here so the legs can keep walking/running while swinging.
+                // PlayerCombat drives its weight (1 while attacking) and also plays the attack full-body when standing still.
+                ctrl.AddLayer("UpperBody");
+                var layers = ctrl.layers;
+                layers[1].avatarMask = upperMask;
+                layers[1].defaultWeight = 0f;
+                layers[1].blendingMode = AnimatorLayerBlendingMode.Override;
+                ctrl.layers = layers;
+                var usm = ctrl.layers[1].stateMachine;
+                usm.defaultState = usm.AddState("Empty");
+                for (int c = 0; c < clips.Length; c++)
+                {
+                    var st = usm.AddState("Attack" + c);
+                    st.motion = clips[c];
+                    st.speedParameterActive = true;
+                    st.speedParameter = "AttackSpeed";
+                }
 
                 string kitPath = $"{KitsDir}/Kit_{s.name}.asset";
                 var kit = AssetDatabase.LoadAssetAtPath<KitData>(kitPath);

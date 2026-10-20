@@ -18,6 +18,7 @@ namespace KitFight
         public bool Sprint;
         public bool AttackDown;   // also "confirm" in menus
         public bool BlockHeld;
+        public bool DodgeDown;
         public bool BlockDown;    // also "back" in menus
         public bool NavLeft, NavRight;
 
@@ -62,9 +63,9 @@ namespace KitFight
             {
                 switch (kind)
                 {
-                    case Kind.Keyboard1: return "WASD hareket | Shift sprint | J/Space saldiri | K blok";
-                    case Kind.Keyboard2: return "Oklar hareket | R-Shift sprint | , veya Numpad1 saldiri | . veya Numpad2 blok";
-                    default: return "Sol analog hareket | RB/L3 sprint | A,X,RT saldiri | LT,LB,B blok";
+                    case Kind.Keyboard1: return "WASD hareket | Shift sprint | J/Space saldiri | K blok | L takla";
+                    case Kind.Keyboard2: return "Oklar hareket | R-Shift sprint | , veya Numpad1 saldiri | . veya Numpad2 blok | / veya Numpad3 takla";
+                    default: return "Sol analog hareket | RB/L3 sprint | A,X,RT saldiri | LT,LB,B blok | Y takla";
                 }
             }
         }
@@ -75,7 +76,7 @@ namespace KitFight
             lastFrame = Time.frameCount;
 
             Move = Vector2.zero;
-            Sprint = AttackDown = BlockHeld = BlockDown = false;
+            Sprint = AttackDown = BlockHeld = BlockDown = DodgeDown = false;
 
             switch (kind)
             {
@@ -99,6 +100,7 @@ namespace KitFight
             AttackDown = kb.jKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame;
             BlockHeld = kb.kKey.isPressed;
             BlockDown = kb.kKey.wasPressedThisFrame;
+            DodgeDown = kb.lKey.wasPressedThisFrame;
         }
 
         void PollKeyboard2()
@@ -111,6 +113,7 @@ namespace KitFight
             AttackDown = kb.commaKey.wasPressedThisFrame || kb.numpad1Key.wasPressedThisFrame;
             BlockHeld = kb.periodKey.isPressed || kb.numpad2Key.isPressed;
             BlockDown = kb.periodKey.wasPressedThisFrame || kb.numpad2Key.wasPressedThisFrame;
+            DodgeDown = kb.slashKey.wasPressedThisFrame || kb.numpad3Key.wasPressedThisFrame;
         }
 
         void PollPad()
@@ -122,6 +125,7 @@ namespace KitFight
             AttackDown = pad.buttonSouth.wasPressedThisFrame || pad.buttonWest.wasPressedThisFrame || pad.rightTrigger.wasPressedThisFrame;
             BlockHeld = pad.leftTrigger.isPressed || pad.leftShoulder.isPressed || pad.buttonEast.isPressed;
             BlockDown = pad.leftTrigger.wasPressedThisFrame || pad.leftShoulder.wasPressedThisFrame || pad.buttonEast.wasPressedThisFrame;
+            DodgeDown = pad.buttonNorth.wasPressedThisFrame || pad.rightStickButton.wasPressedThisFrame;
         }
     }
 }

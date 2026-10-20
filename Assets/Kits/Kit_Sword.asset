@@ -28,5 +28,5 @@ MonoBehaviour:
   arc: 120
   hitStart: 0.35
   knockback: 3
-  attackSpeed: 1
+  attackSpeed: 1.3
   moveSpeedMultiplier: 1
