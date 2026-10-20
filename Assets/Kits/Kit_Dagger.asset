@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: adfc0eb86f93b70478da7edd7d4a5af2, type: 3}
+  m_Name: Kit_Dagger
+  m_EditorClassIdentifier: Assembly-CSharp::KitFight.KitData
+  displayName: Dagger
+  weaponPrefab: {fileID: 7120993385342881108, guid: 90e49dcb8d4095d499a8c16d9fd770a4, type: 3}
+  controller: {fileID: 9100000, guid: 3693b5addb7b29a4db7b6552e5c12e89, type: 2}
+  comboClips:
+  - {fileID: -4858493085594794065, guid: a64a05f220b13bc4e92e00c09985ec62, type: 3}
+  - {fileID: 3094330708855449807, guid: 2c2c84ffdf3b64f4195f0b9a4931e399, type: 3}
+  - {fileID: 1659272208035727622, guid: 9327c0013de1468438a6cfb7e2e7a8a2, type: 3}
+  - {fileID: 8679305495483603795, guid: 363565adc5b6b5e408d5f862a04367b8, type: 3}
+  attackSpeed: 1.3
+  moveSpeedMultiplier: 1.15
