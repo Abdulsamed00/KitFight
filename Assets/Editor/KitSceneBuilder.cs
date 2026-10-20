@@ -146,10 +146,10 @@ namespace KitFight.EditorTools
                 AddState(sm, "BlockHit", blockHitClip, 1.3f);
                 AddState(sm, "Hit", hit, 1.3f);
                 sm.AddState("Death").motion = death;
-                AddState(sm, "Dodge", dodge, 1.4f); // forward (Kevin Iglesias)
-                AddState(sm, "DodgeBack", dodgeBack, 3f);
-                AddState(sm, "DodgeRight", dodgeRight, 2f);
-                var left = sm.AddState("DodgeLeft"); left.motion = dodgeRight; left.speed = 2f; left.mirror = true;
+                AddState(sm, "Dodge", dodge, 2.2f); // forward (Kevin Iglesias)
+                AddState(sm, "DodgeBack", dodgeBack, 4.6f);
+                AddState(sm, "DodgeRight", dodgeRight, 3.1f);
+                var left = sm.AddState("DodgeLeft"); left.motion = dodgeRight; left.speed = 3.1f; left.mirror = true;
                 AddState(sm, "HitHeavy", hitHeavy, 1.9f);
                 AddState(sm, "BlockImpact", blockImpact, 1.6f);
                 AddState(sm, "Stunned", stunned, 2f);

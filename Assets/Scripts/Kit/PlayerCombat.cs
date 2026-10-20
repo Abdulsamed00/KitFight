@@ -31,10 +31,11 @@ namespace KitFight
         public float guardBreakStun = 0.9f;
 
         [Header("Dodge")]
-        public float dodgeDuration = 0.7f;      // control is locked this long (clip is sped up and blended out)
-        public float dodgeInvulnerable = 0.4f;  // i-frames from the start of the dodge
-        public float dodgeSpeed = 9f;           // initial dash speed (decays in PlayerMotor)
-        public float dodgeCooldown = 0.6f;      // after the dodge ends
+        public float dodgeDuration = 0.45f;     // control is locked this long (clip is sped up and blended out)
+        public float dodgeInvulnerable = 0.3f;  // i-frames from the start of the dodge
+        public float dodgeSpeed = 14f;          // initial dash speed (decays in PlayerMotor)
+        public float dodgeDecay = 40f;          // dash slows by this much per second (~2.4 m dash in ~0.35 s)
+        public float dodgeCooldown = 0.5f;      // after the dodge ends
 
         public bool IsAttacking => step >= 0;
         public bool IsBlocking => blocking;
@@ -151,7 +152,7 @@ namespace KitFight
             StopBlock(false);
             motor.FaceOpponent();   // directional clips are played relative to the opponent
             motor.locked = true;
-            motor.AddImpulse(dir * dodgeSpeed);
+            motor.AddImpulse(dir * dodgeSpeed, dodgeDecay);
             dodgeTimer = dodgeDuration;
 
             // Pick the clip by dodge direction relative to facing: back / right / left (mirrored) / forward.

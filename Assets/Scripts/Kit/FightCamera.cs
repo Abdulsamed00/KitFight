@@ -17,12 +17,16 @@ namespace KitFight
         public float distancePerMeter = 0.8f;
         public float minDistance = 8f;
         public float maxDistance = 22f;
-        public float smoothTime = 0.25f;
-        public float yawSmoothTime = 0.35f;
+        public float smoothTime = 0.35f;
+        public float yawSmoothTime = 0.6f;
+        public float minYawSeparation = 1.5f; // closer than this the camera stops turning
+        public float yawDeadZone = 8f;        // ignore axis changes smaller than this (degrees)
+        public float minYawSpeed = 20f;       // deg/s when fighters are close
+        public float maxYawSpeedFar = 90f;    // deg/s when far apart
         public float lookHeight = 1.1f;
 
         Vector3 basePos, velocity;
-        float yaw, yawVelocity;
+        float yaw, targetYaw, yawVelocity;
         float shakeAmp, shakeTime, shakeDuration;
         bool initialized;
 
@@ -42,16 +46,20 @@ namespace KitFight
         {
             if (!p1 || !p2) return;
 
-            // Yaw: camera right = direction P1 -> P2.
+            // Yaw: camera right = direction P1 -> P2. Up close (lunges, dodges, knockback) the axis swings wildly,
+            // so the camera only turns slowly there and ignores small changes.
             var axis = Vector3.ProjectOnPlane(p2.position - p1.position, Vector3.up);
-            float targetYaw = yaw;
-            if (axis.magnitude > 0.6f)
+            float sepFlat = axis.magnitude;
+            if (sepFlat > minYawSeparation || !initialized)
             {
                 var fwd = Vector3.Cross(axis.normalized, Vector3.up);
-                targetYaw = Mathf.Atan2(fwd.x, fwd.z) * Mathf.Rad2Deg;
+                float axisYaw = Mathf.Atan2(fwd.x, fwd.z) * Mathf.Rad2Deg;
+                if (!initialized || Mathf.Abs(Mathf.DeltaAngle(targetYaw, axisYaw)) > yawDeadZone) targetYaw = axisYaw;
             }
             if (!initialized) yaw = targetYaw;
-            yaw = Mathf.SmoothDampAngle(yaw, targetYaw, ref yawVelocity, yawSmoothTime);
+            float closeness = Mathf.InverseLerp(minYawSeparation, minYawSeparation + 4f, sepFlat);
+            float maxYawSpeed = Mathf.Lerp(minYawSpeed, maxYawSpeedFar, closeness);
+            yaw = Mathf.SmoothDampAngle(yaw, targetYaw, ref yawVelocity, yawSmoothTime, maxYawSpeed);
 
             var mid = (p1.position + p2.position) * 0.5f;
             float sep = Vector3.Distance(p1.position, p2.position);
@@ -67,8 +75,8 @@ namespace KitFight
             {
                 shakeTime -= Time.unscaledDeltaTime;
                 float k = Mathf.Clamp01(shakeTime / Mathf.Max(0.01f, shakeDuration));
-                float t = Time.unscaledTime * 60f;
-                offset = rot * new Vector3(Mathf.PerlinNoise(t, 0.1f) - 0.5f, Mathf.PerlinNoise(0.1f, t) - 0.5f, 0f) * 2f * shakeAmp * k;
+                float t = Time.unscaledTime * 25f;
+                offset = rot * new Vector3(Mathf.PerlinNoise(t, 0.1f) - 0.5f, Mathf.PerlinNoise(0.1f, t) - 0.5f, 0f) * 1.2f * shakeAmp * k * k;
             }
 
             transform.SetPositionAndRotation(basePos + offset, rot);

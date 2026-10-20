@@ -29,6 +29,7 @@ namespace KitFight
         float verticalVel;
         Vector2 animMove;
         Vector3 impulse;
+        float impulseDecay = 22f;
 
         static readonly int MoveXHash = Animator.StringToHash("MoveX");
         static readonly int MoveZHash = Animator.StringToHash("MoveZ");
@@ -53,7 +54,12 @@ namespace KitFight
             gait = g;
         }
 
-        public void AddImpulse(Vector3 v) => impulse += v;
+        /// <summary>decay = how fast the impulse fades (m/s per second); higher = shorter, snappier dash.</summary>
+        public void AddImpulse(Vector3 v, float decay = 22f)
+        {
+            impulse += v;
+            impulseDecay = decay;
+        }
 
         public void ClearImpulse() => impulse = Vector3.zero;
 
@@ -127,7 +133,7 @@ namespace KitFight
 
             if (cc.isGrounded && verticalVel < 0f) verticalVel = -2f;
             verticalVel += gravity * Time.deltaTime;
-            impulse = Vector3.MoveTowards(impulse, Vector3.zero, 22f * Time.deltaTime);
+            impulse = Vector3.MoveTowards(impulse, Vector3.zero, impulseDecay * Time.deltaTime);
             cc.Move((horizontal + impulse + Vector3.up * verticalVel) * Time.deltaTime);
 
             // Animator blend: local move direction * gait (0 idle, 1 walk, 2 run, 3 sprint).
