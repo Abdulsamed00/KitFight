@@ -80,6 +80,10 @@ namespace KitFight.EditorTools
                 cap.center = b.center;
                 cap.height = b.size.y;
                 cap.radius = Mathf.Min(b.extents.x, b.extents.z) * 0.9f;
+                // The square base pokes out past the capsule at the corners.
+                var basis = go.AddComponent<BoxCollider>();
+                basis.center = new Vector3(b.center.x, b.min.y + 0.25f, b.center.z);
+                basis.size = new Vector3(b.size.x * 0.98f, 0.5f, b.size.z * 0.98f);
                 MarkStatic(go);
             }
 
@@ -283,13 +287,13 @@ namespace KitFight.EditorTools
         }
 
         /// <summary>
-        /// Static batching + GI for never-moving pieces. No OccluderStatic: CameraOccluderFade hides these
-        /// at runtime, and a wall must not act as an occlusion-culling occluder for the fighters.
+        /// Static batching for never-moving pieces. No ContributeGI: lighting is realtime and the FBX have no
+        /// lightmap UVs. No OccluderStatic: CameraOccluderFade hides these at runtime.
         /// </summary>
         static void MarkStatic(GameObject go)
         {
             foreach (var t in go.GetComponentsInChildren<Transform>(true))
-                GameObjectUtility.SetStaticEditorFlags(t.gameObject, StaticEditorFlags.BatchingStatic | StaticEditorFlags.ContributeGI);
+                GameObjectUtility.SetStaticEditorFlags(t.gameObject, StaticEditorFlags.BatchingStatic);
         }
 
         /// <summary>Bounds of all renderers under 'target', in 'space' local coordinates.</summary>

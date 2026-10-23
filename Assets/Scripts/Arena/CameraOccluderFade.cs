@@ -16,8 +16,8 @@ namespace KitFight
         public string[] rootNames = { "WallVisuals", "Pillars" };
         [Tooltip("Sample heights on each fighter (feet / body / head).")]
         public float[] heights = { 0.2f, 1f, 1.7f };
-        [Tooltip("Bounds are grown by this much so the fighter's width counts too.")]
-        public float padding = 0.15f;
+        [Tooltip("Bounds are grown by this much so the fighter's width counts too (CharacterController radius).")]
+        public float padding = 0.3f;
 
         Renderer[] rends;
         Bounds[] bounds;
