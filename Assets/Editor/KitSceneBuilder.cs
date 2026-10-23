@@ -261,6 +261,9 @@ namespace KitFight.EditorTools
             var p2 = CreatePlayer("Player2", kits, 1, gm.colors[1], gm.spawnPositions[1]);
             gm.players = new[] { p1.GetComponent<PlayerInput>(), p2.GetComponent<PlayerInput>() };
 
+            // Arena dressing (wall/pillar visuals, breakables, spike traps); the invisible walls above stay.
+            ArenaBuilder.Build(gm.spawnPositions);
+
             // One shared camera
             var cam = Camera.main;
             if (!cam) { var go = new GameObject("Main Camera") { tag = "MainCamera" }; cam = go.AddComponent<Camera>(); }

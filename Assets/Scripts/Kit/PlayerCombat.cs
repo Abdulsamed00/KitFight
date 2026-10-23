@@ -220,11 +220,24 @@ namespace KitFight
                 bool finisher = step == kit.comboClips.Length - 1 && kit.damage >= knockdownMinDamage;
                 other.ReceiveHit(kit.damage, kit.knockback, transform.position, this, finisher);
             }
+
+            // Props in the same cone shatter too (cosmetic only: no hit-stop, the swing is not affected).
+            for (int i = Breakable.All.Count - 1; i >= 0; i--)
+            {
+                var b = Breakable.All[i];
+                if (b.IsBroken) continue;
+                var to = Vector3.ProjectOnPlane(b.transform.position - transform.position, Vector3.up);
+                if (to.magnitude > kit.range + 0.3f + b.radius) continue;
+                if (to.sqrMagnitude > 0.01f && Vector3.Angle(transform.forward, to) > kit.arc * 0.5f) continue;
+                b.Break(transform.position);
+            }
         }
 
         // ---------------------------------------------------------------- being hit
 
-        public void ReceiveHit(float damage, float knockback, Vector3 fromPosition, PlayerCombat attacker = null, bool knockdown = false)
+        /// <param name="attacker">null for environment hazards (traps): then only the victim gets hit-stop.</param>
+        /// <param name="unblockable">true = guard is ignored (e.g. spikes from below).</param>
+        public void ReceiveHit(float damage, float knockback, Vector3 fromPosition, PlayerCombat attacker = null, bool knockdown = false, bool unblockable = false)
         {
             if (dead) return;
             if (dodgeTimer > dodgeDuration - dodgeInvulnerable) return; // i-frames
@@ -233,7 +246,7 @@ namespace KitFight
             var away =Vector3.ProjectOnPlane(transform.position - fromPosition, Vector3.up);
             away = away.sqrMagnitude > 0.001f ? away.normalized : -transform.forward;
 
-            bool guarded = blocking && Vector3.Angle(transform.forward, -away) <= blockAngle * 0.5f;
+            bool guarded = !unblockable && blocking && Vector3.Angle(transform.forward, -away) <= blockAngle * 0.5f;
             var point = transform.position + Vector3.up * 1.2f - away * 0.35f;
             if (guarded)
             {
