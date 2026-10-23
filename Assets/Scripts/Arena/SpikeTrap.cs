@@ -16,7 +16,7 @@ namespace KitFight
         public float damage = 10f;
         public float knockback = 2f;
         [Tooltip("Half size of the damaging square (plate is 2x2 m).")]
-        public float halfSize = 1f;
+        public float halfSize = 0.85f;
 
         public float idleMin = 3f, idleMax = 5f;
         public float warningTime = 0.6f, strikeTime = 0.1f, holdTime = 0.6f, retractTime = 0.4f;
@@ -31,7 +31,13 @@ namespace KitFight
 
         public bool IsDangerous => state == State.Strike;
 
-        void Start() => GoIdle(true);
+        Renderer[] spikeRenderers;
+
+        void Start()
+        {
+            if (spikes) spikeRenderers = spikes.GetComponentsInChildren<Renderer>(true);
+            GoIdle(true);
+        }
 
         void GoIdle(bool randomOffset)
         {
@@ -46,6 +52,12 @@ namespace KitFight
             var p = spikes.localPosition;
             p.y = y;
             spikes.localPosition = p;
+
+            // Fully retracted spikes sit under the floor: no shadow then.
+            if (spikeRenderers == null) return;
+            var mode = y <= downY + 0.001f ? UnityEngine.Rendering.ShadowCastingMode.Off : UnityEngine.Rendering.ShadowCastingMode.On;
+            foreach (var r in spikeRenderers)
+                if (r.shadowCastingMode != mode) r.shadowCastingMode = mode;
         }
 
         void Update()

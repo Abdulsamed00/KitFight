@@ -46,24 +46,24 @@ namespace KitFight.EditorTools
                     var w = Place(walls, $"Wall_{side}_{i:00}", "SM_ArenaWall_01", pos, yaw, new Vector3(WallLen, 3f, 1f),
                         stone, PrimitiveType.Cube, Align.Bottom, alignLongX: true);
                     RemoveColliders(w);
+                    MarkStatic(w);
                 }
             }
 
+            // Edge pillars stand just in front of the wall (back half sunk into it, front face ~1 m inside the
+            // boundary) so they read as pillars and get their own collider. Corner pillars fill the gap where
+            // two wall lines meet, outside the playable area.
             var pillars = Child(arena, "Pillars");
-            var pillarSpots = new HashSet<Vector2>();
-            float[] marks = { -Half, -14f, -6f, 6f, 14f, Half };
+            var pillarSpots = new List<Vector2>();
+            float e = Half - 0.45f;
+            float[] marks = { -14f, -6f, 6f, 14f };
             foreach (var m in marks)
             {
-                pillarSpots.Add(new Vector2(m, Half + 0.5f));
-                pillarSpots.Add(new Vector2(m, -Half - 0.5f));
-                pillarSpots.Add(new Vector2(Half + 0.5f, m));
-                pillarSpots.Add(new Vector2(-Half - 0.5f, m));
+                pillarSpots.Add(new Vector2(m, e));
+                pillarSpots.Add(new Vector2(m, -e));
+                pillarSpots.Add(new Vector2(e, m));
+                pillarSpots.Add(new Vector2(-e, m));
             }
-            // corners sit on the wall lines' intersection
-            pillarSpots.Remove(new Vector2(Half, Half + 0.5f)); pillarSpots.Remove(new Vector2(Half + 0.5f, Half));
-            pillarSpots.Remove(new Vector2(-Half, Half + 0.5f)); pillarSpots.Remove(new Vector2(-Half - 0.5f, Half));
-            pillarSpots.Remove(new Vector2(Half, -Half - 0.5f)); pillarSpots.Remove(new Vector2(Half + 0.5f, -Half));
-            pillarSpots.Remove(new Vector2(-Half, -Half - 0.5f)); pillarSpots.Remove(new Vector2(-Half - 0.5f, -Half));
             float c = Half + 0.5f;
             pillarSpots.Add(new Vector2(c, c)); pillarSpots.Add(new Vector2(-c, c));
             pillarSpots.Add(new Vector2(c, -c)); pillarSpots.Add(new Vector2(-c, -c));
@@ -73,6 +73,14 @@ namespace KitFight.EditorTools
                 var go = Place(pillars, $"Pillar_{pi++:00}", "SM_Pillar_01", new Vector3(p.x, 0f, p.y), 0f,
                     new Vector3(1.2f, 4f, 1.2f), stoneDark, PrimitiveType.Cube, Align.Bottom);
                 RemoveColliders(go);
+                // Capsule around the shaft, in the holder's space (so a unit-fix scale is included).
+                var b = LocalBounds(go.transform, go);
+                var cap = go.AddComponent<CapsuleCollider>();
+                cap.direction = 1;
+                cap.center = b.center;
+                cap.height = b.size.y;
+                cap.radius = Mathf.Min(b.extents.x, b.extents.z) * 0.9f;
+                MarkStatic(go);
             }
 
             // ---------------------------------------------------------- breakables
@@ -125,11 +133,23 @@ namespace KitFight.EditorTools
             var visual = Place(root.transform, "Visual", model, Vector3.zero, 0f, size, mat, prim, Align.Bottom);
             RemoveColliders(visual);
 
-            // Solid collider fitted to the intact model (measured before the yaw is applied).
+            // Solid collider fitted to the intact model (measured before the yaw is applied):
+            // a capsule for round props (barrel, vase), a box for the crate.
             var b = LocalBounds(root.transform, visual);
-            var box = root.AddComponent<BoxCollider>();
-            box.center = b.center;
-            box.size = b.size;
+            if (prim == PrimitiveType.Cylinder)
+            {
+                var cap = root.AddComponent<CapsuleCollider>();
+                cap.direction = 1;
+                cap.center = b.center;
+                cap.height = b.size.y;
+                cap.radius = b.extents.x;
+            }
+            else
+            {
+                var box = root.AddComponent<BoxCollider>();
+                box.center = b.center;
+                box.size = b.size;
+            }
 
             var br = root.AddComponent<Breakable>();
             br.intactVisual = visual;
@@ -260,6 +280,16 @@ namespace KitFight.EditorTools
         static void RemoveColliders(GameObject go)
         {
             foreach (var c in go.GetComponentsInChildren<Collider>(true)) Object.DestroyImmediate(c);
+        }
+
+        /// <summary>
+        /// Static batching + GI for never-moving pieces. No OccluderStatic: CameraOccluderFade hides these
+        /// at runtime, and a wall must not act as an occlusion-culling occluder for the fighters.
+        /// </summary>
+        static void MarkStatic(GameObject go)
+        {
+            foreach (var t in go.GetComponentsInChildren<Transform>(true))
+                GameObjectUtility.SetStaticEditorFlags(t.gameObject, StaticEditorFlags.BatchingStatic | StaticEditorFlags.ContributeGI);
         }
 
         /// <summary>Bounds of all renderers under 'target', in 'space' local coordinates.</summary>

@@ -269,6 +269,7 @@ namespace KitFight.EditorTools
             if (!cam) { var go = new GameObject("Main Camera") { tag = "MainCamera" }; cam = go.AddComponent<Camera>(); }
             cam.fieldOfView = 45f;
             var fc = cam.gameObject.GetComponent<FightCamera>() ?? cam.gameObject.AddComponent<FightCamera>();
+            if (!cam.GetComponent<CameraOccluderFade>()) cam.gameObject.AddComponent<CameraOccluderFade>();
             cam.transform.position = new Vector3(0f, 6f, -12f);
 
             Directory.CreateDirectory("Assets/Scenes");

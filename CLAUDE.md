@@ -23,6 +23,15 @@ Unity 6.3 LTS (6000.3.26f1), URP, new Input System. 3D action combat game (2-pla
 - `GameManager`: Lobby (join + kit select) -> Countdown -> Fight -> RoundOver -> MatchOver (first to 2 wins); throwaway IMGUI HUD.
 - Editor: `Assets/Editor/KitSceneBuilder.cs`, menu **KitFight > Build Test Scene** regenerates controllers, KitData and `Assets/Scenes/KitTest.unity`.
 
+## Arena (`Assets/Scripts/Arena/`, `Assets/Editor/ArenaBuilder.cs`)
+
+- Low-poly assets made in Blender by the asset-agent: FBX in `Assets/Models/Arena/` (`SM_ArenaWall_01`, `SM_Pillar_01`, `SM_Crate_01`, `SM_Barrel_01`, `SM_Vase_01` + `_Broken` versions with one child per piece, `SM_SpikeTrap_Base_01`, `SM_SpikeTrap_Spikes_01`); source `ArtSource/Arena.blend`. Flat-colour URP Lit materials embedded in the FBX. Use Box/Capsule colliders, never MeshCollider (meshes are overlapping closed blocks).
+- `ArenaBuilder.Build(spawnPositions)` (called from `KitSceneBuilder`) places wall/pillar visuals along the ±22 m edge (the invisible `Walls` colliders stay the real boundary), 13 breakables and 4 spike traps at (±8,0,±8). Falls back to primitives if an FBX is missing.
+- `Breakable`: cosmetic only. The attack cone in `PlayerCombat.DoHit` also calls `Break()`; pieces get rigidbodies, ignore player collisions and fade out. No damage, no hit-stop. `GameManager.ResetFighters()` resets them every round.
+- `SpikeTrap`: Idle (3-5 s) -> Warning (0.6 s, tips peek out) -> Strike (one unblockable hit per player, 10 dmg, via `ReceiveHit(..., unblockable: true)`) -> Hold -> Retract. Runs only while `GameManager.IsFighting`. Dodge/knockdown i-frames still apply.
+- The camera hides wall/pillar renderers that block the view of a fighter.
+- Main-checkout writes from a worktree session are blocked by a hook; make changes in the worktree, commit, and the owner merges into `main` (the Unity Editor has the main checkout open).
+
 ## Multiplayer rule
 
 Keep input separate from game logic. Everything that changes state goes through `PlayerCombat` / `PlayerMotor` / `KitSwitcher` commands so they can later be sent to / validated by a server. Do not put rules in `PlayerInput` / `InputSource`.
@@ -49,6 +58,6 @@ Animation speeds: attack speed lives in `KitSpec.attackSpeed`; reaction/dodge st
 
 ## Status
 
-Done: 2-player lobby/match flow, hit/block/death, 5 kits, shared camera, gamepad input. Hit, block and kill verified in Play mode through code; gamepad and the IMGUI HUD were not tested by hand (no controller attached in the test session).
+Done: 2-player lobby/match flow, hit/block/death, 5 kits, shared camera, gamepad input, arena with breakables and spike traps (trap damage, unblockable, break/reset verified in Play mode; the trap's timed cycle in a real match was not). Hit, block and kill verified in Play mode through code; gamepad and the IMGUI HUD were not tested by hand (no controller attached in the test session).
 
 Next: hand-tune per-kit `hitStart`/range/damage, dodge, strafe/lock-on animations, hit VFX (PixPlays), proper UI, online multiplayer (see the `unity:setup-multiplayer-services` skill).
