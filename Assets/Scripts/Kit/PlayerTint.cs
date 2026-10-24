@@ -25,11 +25,19 @@ namespace KitFight
             flashTimer = flashDuration;
         }
 
+        /// <summary>0..1 golden glow while a special attack charges (set every frame, 0 = off).</summary>
+        public void SetGlow(float amount) => glow = Mathf.Clamp01(amount);
+
+        static readonly Color GlowColor = new Color(1f, 0.8f, 0.25f);
+        float glow, appliedGlow;
+
         void Update()
         {
-            if (flashTimer <= 0f) return;
-            flashTimer -= Time.unscaledDeltaTime;
-            Apply(Color.Lerp(color, Color.white, Mathf.Clamp01(flashTimer / flashDuration)));
+            if (flashTimer <= 0f && glow == appliedGlow) return;
+            if (flashTimer > 0f) flashTimer -= Time.unscaledDeltaTime;
+            appliedGlow = glow;
+            var c = Color.Lerp(color, GlowColor, glow);
+            Apply(Color.Lerp(c, Color.white, Mathf.Clamp01(flashTimer / flashDuration)));
         }
 
         void Apply(Color c)

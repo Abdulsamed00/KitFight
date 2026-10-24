@@ -37,7 +37,24 @@ namespace KitFight
         public float dodgeDecay = 40f;          // dash slows by this much per second (~2.4 m dash in ~0.35 s)
         public float dodgeCooldown = 0.5f;      // after the dodge ends
 
+        [Header("Stamina / special attack")]
+        public float maxStamina = 100f;
+        public float staminaRegen = 14f;        // per second, paused while the special runs
+        public float specialCost = 60f;
+        public float specialChargeTime = 0.9f;  // wind-up; a clean hit in this window cancels it (stamina is lost)
+        public float specialHitTime = 0.3f;     // after the charge, when the blow lands (matched to the SpecialAttack state speed)
+        public float specialRecoverTime = 0.75f;// after the charge, until control returns
+        public float specialBaseDamage = 18f;   // + kit damage
+        public float specialRangeBonus = 0.8f;  // + kit range
+        public float specialArc = 170f;
+        public float specialKnockback = 7f;
+
         public bool IsAttacking => step >= 0;
+        public bool IsCharging => special == 1;
+        public bool IsSpecial => special > 0;
+        public float Stamina => stamina;
+        public float StaminaFraction => Mathf.Clamp01(stamina / maxStamina);
+        public bool CanSpecial => stamina >= specialCost;
         public bool IsBlocking => blocking;
         public bool IsDead => dead;
         public bool IsDodging => dodgeTimer > 0f;
@@ -63,6 +80,10 @@ namespace KitFight
         float upperWeight;
         bool hasUpperLayer;
         PlayerTint tint;
+        float stamina;
+        int special;            // 0 none, 1 charging, 2 striking
+        float specialTimer;
+        bool specialHitDone;
 
         static readonly int AttackSpeedHash = Animator.StringToHash("AttackSpeed");
 
@@ -72,6 +93,7 @@ namespace KitFight
             motor = GetComponent<PlayerMotor>();
             Health = GetComponent<Health>();
             tint = GetComponent<PlayerTint>();
+            stamina = maxStamina;
         }
 
         void Start() => hasUpperLayer = anim && anim.layerCount > 1;
@@ -106,6 +128,7 @@ namespace KitFight
             hitStopTimer = 0f;
             downTimer = guardDamage = 0f;
             gettingUp = celebrating = false;
+            stamina = maxStamina;
             if (anim) anim.speed = 1f;
             blockHeld = false;
             Health.ResetHealth();
@@ -116,6 +139,7 @@ namespace KitFight
         {
             step = -1;
             queued = hitDone = false;
+            EndSpecial();
             ClearUpper();
             blocking = false;
             if (motor) { motor.attacking = false; motor.blocking = false; }
@@ -128,10 +152,34 @@ namespace KitFight
 
         public void Attack()
         {
-            if (Incapacitated || blocking || dodgeTimer > 0f) return;
+            if (Incapacitated || blocking || special > 0) return;
             if (kit == null || kit.comboClips == null || kit.comboClips.Length == 0) return;
+            if (dodgeTimer > 0f)
+            {
+                // Dash attack (light kits): cancel the dash into the first swing, keeping the momentum.
+                if (!kit.dashAttack || dodgeTimer > dodgeDuration - 0.06f) return;
+                dodgeTimer = 0f;
+                dodgeCooldownTimer = dodgeCooldown;
+                motor.locked = false;
+                Begin(0);
+                return;
+            }
             if (step < 0) Begin(0);
             else queued = true;
+        }
+
+        /// <summary>Charged special: costs stamina, winds up for specialChargeTime, then a wide knockdown blow.</summary>
+        public void SpecialAttack()
+        {
+            if (Incapacitated || blocking || special > 0 || step >= 0 || dodgeTimer > 0f || kit == null) return;
+            if (stamina < specialCost) return;
+            stamina -= specialCost;
+            special = 1;
+            specialTimer = 0f;
+            specialHitDone = false;
+            motor.FaceOpponent();
+            motor.locked = true;
+            if (anim) anim.CrossFadeInFixedTime("SpecialCharge", 0.1f);
         }
 
         public void SetBlock(bool held)
@@ -143,7 +191,7 @@ namespace KitFight
         /// <summary>Dash + i-frames. moveInput is the stick/key vector; zero = step back from the opponent.</summary>
         public void Dodge(Vector2 moveInput)
         {
-            if (Incapacitated || step >= 0 || dodgeTimer > 0f || dodgeCooldownTimer > 0f) return;
+            if (Incapacitated || step >= 0 || special > 0 || dodgeTimer > 0f || dodgeCooldownTimer > 0f) return;
 
             var dir = motor.WorldDirection(moveInput);
             if (dir == Vector3.zero) dir = -motor.DirectionToOpponent();
@@ -166,7 +214,7 @@ namespace KitFight
 
         void TryStartBlock()
         {
-            if (Incapacitated || blocking || step >= 0 || kit == null || kit.blockClip == null) return;
+            if (Incapacitated || blocking || step >= 0 || special > 0 || kit == null || kit.blockClip == null) return;
             blocking = true;
             if (motor) motor.blocking = true;
             if (anim) anim.CrossFadeInFixedTime("Block", blendTime);
@@ -211,33 +259,82 @@ namespace KitFight
 
         void DoHit()
         {
+            bool finisher = step == kit.comboClips.Length - 1 && kit.damage >= knockdownMinDamage;
+            HitScan(kit.damage, kit.range, kit.arc, kit.knockback, finisher, false);
+        }
+
+        /// <summary>Cone hit scan in front of the player: fighters take the hit, props shatter.</summary>
+        void HitScan(float damage, float range, float arc, float knockback, bool knockdown, bool guardCrush)
+        {
             foreach (var other in All)
             {
                 if (other == this || other.dead) continue;
                 var to = Vector3.ProjectOnPlane(other.transform.position - transform.position, Vector3.up);
-                if (to.magnitude > kit.range + 0.3f) continue;
-                if (to.sqrMagnitude > 0.01f && Vector3.Angle(transform.forward, to) > kit.arc * 0.5f) continue;
-                bool finisher = step == kit.comboClips.Length - 1 && kit.damage >= knockdownMinDamage;
-                other.ReceiveHit(kit.damage, kit.knockback, transform.position, this, finisher);
+                if (to.magnitude > range + 0.3f) continue;
+                if (to.sqrMagnitude > 0.01f && Vector3.Angle(transform.forward, to) > arc * 0.5f) continue;
+                other.ReceiveHit(damage, knockback, transform.position, this, knockdown, false, guardCrush);
             }
 
-            // Props in the same cone shatter too (cosmetic only: no hit-stop, the swing is not affected).
+            // Props in the same cone shatter too (no hit-stop, the swing is not affected).
             for (int i = Breakable.All.Count - 1; i >= 0; i--)
             {
                 var b = Breakable.All[i];
                 if (b.IsBroken) continue;
                 var to = Vector3.ProjectOnPlane(b.transform.position - transform.position, Vector3.up);
-                if (to.magnitude > kit.range + 0.3f + b.radius) continue;
-                if (to.sqrMagnitude > 0.01f && Vector3.Angle(transform.forward, to) > kit.arc * 0.5f) continue;
+                if (to.magnitude > range + 0.3f + b.radius) continue;
+                if (to.sqrMagnitude > 0.01f && Vector3.Angle(transform.forward, to) > arc * 0.5f) continue;
                 b.Break(transform.position);
             }
+        }
+
+        // ---------------------------------------------------------------- special
+
+        void UpdateSpecial()
+        {
+            specialTimer += Time.deltaTime;
+            if (special == 1)
+            {
+                motor.FaceOpponent();
+                // Pulsing glow that speeds up as the charge fills.
+                float k = specialTimer / specialChargeTime;
+                if (tint) tint.SetGlow(Mathf.Lerp(0.3f, 1f, k) * (0.75f + 0.25f * Mathf.Sin(specialTimer * Mathf.Lerp(8f, 30f, k))));
+                if (specialTimer < specialChargeTime) return;
+
+                special = 2;
+                specialTimer = 0f;
+                if (tint) tint.SetGlow(0f);
+                if (motor.DistanceToOpponent() > 1.2f) motor.AddImpulse(motor.DirectionToOpponent() * 6f);
+                if (anim) anim.CrossFadeInFixedTime("SpecialAttack", 0.05f);
+                return;
+            }
+
+            if (!specialHitDone && specialTimer >= specialHitTime)
+            {
+                specialHitDone = true;
+                HitFeedback.SpecialRelease(transform.position + Vector3.up * 1f + transform.forward * 0.8f, transform.forward, new Color(1f, 0.8f, 0.25f));
+                HitScan(specialBaseDamage + kit.damage, kit.range + specialRangeBonus, specialArc, specialKnockback, true, true);
+            }
+            if (specialTimer < specialRecoverTime) return;
+
+            EndSpecial();
+            motor.locked = false;
+            if (anim) anim.CrossFadeInFixedTime("Locomotion", 0.2f);
+            if (blockHeld) TryStartBlock();
+        }
+
+        void EndSpecial()
+        {
+            special = 0;
+            specialTimer = 0f;
+            if (tint) tint.SetGlow(0f);
         }
 
         // ---------------------------------------------------------------- being hit
 
         /// <param name="attacker">null for environment hazards (traps): then only the victim gets hit-stop.</param>
         /// <param name="unblockable">true = guard is ignored (e.g. spikes from below).</param>
-        public void ReceiveHit(float damage, float knockback, Vector3 fromPosition, PlayerCombat attacker = null, bool knockdown = false, bool unblockable = false)
+        /// <param name="guardCrush">true = a blocked hit breaks the guard outright (special attack).</param>
+        public void ReceiveHit(float damage, float knockback, Vector3 fromPosition, PlayerCombat attacker = null, bool knockdown = false, bool unblockable = false, bool guardCrush = false)
         {
             if (dead) return;
             if (dodgeTimer > dodgeDuration - dodgeInvulnerable) return; // i-frames
@@ -254,7 +351,7 @@ namespace KitFight
                 StopTime(attacker, 0.05f);
                 motor.AddImpulse(away * knockback * 0.35f);
                 guardDamage += damage;
-                if (guardDamage >= guardBreakDamage) { GuardBreak(away, knockback); return; }
+                if (guardCrush || guardDamage >= guardBreakDamage) { GuardBreak(away, knockback); return; }
                 if (damage >= 20f)
                 {
                     blockReactTimer = 0.45f; // big recoil from heavy weapons
@@ -284,8 +381,11 @@ namespace KitFight
 
             if (knockdown) { Knockdown(away, knockback); return; }
 
+            // A clean hit during the wind-up cancels the special (the stamina is gone); the blow itself has armour.
+            if (special == 1) EndSpecial();
+
             // Flinch only when not mid-swing, so a started attack is never cancelled.
-            if (step < 0)
+            if (step < 0 && special == 0)
             {
                 StopBlock(false);
                 bool heavy = damage >= heavyHitDamage;
@@ -300,6 +400,7 @@ namespace KitFight
         {
             step = -1;
             queued = false;
+            EndSpecial();
             ClearUpper();
             StopBlock(false);
             stunTimer = 0f;
@@ -316,6 +417,7 @@ namespace KitFight
         void GuardBreak(Vector3 away, float knockback)
         {
             guardDamage = 0f;
+            EndSpecial();
             StopBlock(false);
             stunTimer = guardBreakStun;
             motor.locked = true;
@@ -330,6 +432,7 @@ namespace KitFight
             if (dead) return;
             step = -1;
             queued = false;
+            EndSpecial();
             ClearUpper();
             StopBlock(false);
             celebrating = true;
@@ -356,6 +459,7 @@ namespace KitFight
             dead = true;
             step = -1;
             queued = false;
+            EndSpecial();
             ClearUpper();
             blocking = false;
             motor.attacking = false;
@@ -384,6 +488,7 @@ namespace KitFight
             }
 
             if (dodgeCooldownTimer > 0f) dodgeCooldownTimer -= Time.deltaTime;
+            if (special == 0) stamina = Mathf.Min(maxStamina, stamina + staminaRegen * Time.deltaTime);
             if (guardDamage > 0f && !blocking) guardDamage = Mathf.Max(0f, guardDamage - guardRecovery * Time.deltaTime);
 
             if (downTimer > 0f)
@@ -430,6 +535,8 @@ namespace KitFight
                 }
                 return;
             }
+
+            if (special > 0) { UpdateSpecial(); return; }
 
             if (blockReactTimer > 0f)
             {

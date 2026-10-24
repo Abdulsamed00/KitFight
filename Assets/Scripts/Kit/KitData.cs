@@ -32,5 +32,7 @@ namespace KitFight
         [Header("Speed")]
         public float attackSpeed = 1f;
         public float moveSpeedMultiplier = 1f;
+        [Tooltip("Attack can be pressed during a dodge to cancel the dash into a swing (keeps the momentum).")]
+        public bool dashAttack;
     }
 }

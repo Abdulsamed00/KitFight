@@ -17,6 +17,7 @@ namespace KitFight.EditorTools
         const string MatDir = "Assets/Materials/Arena";
         const float Half = 22f;           // playable area is +-22 m
         const float WallLen = 4f;
+        const float HealAmount = 25f;
 
         enum Align { Bottom, Top }
 
@@ -103,7 +104,9 @@ namespace KitFight.EditorTools
                 ("Crate", -12f, 3.5f), ("Barrel", 12f, -3.5f),
             };
             var rng = new System.Random(7);
-            int n = 0;
+            int n = 0, healers = 0;
+            var potion = LoadModel("SM_HealthPotion_01");
+            Breakable br;
             foreach (var (kind, x, z) in layout)
             {
                 var pos = new Vector3(x, 0f, z);
@@ -111,9 +114,16 @@ namespace KitFight.EditorTools
                 float yaw = (float)rng.NextDouble() * 360f;
                 switch (kind)
                 {
-                    case "Crate": MakeBreakable(props, $"Crate_{n++:00}", "SM_Crate_01", pos, yaw, new Vector3(1f, 1f, 1f), wood, PrimitiveType.Cube); break;
-                    case "Barrel": MakeBreakable(props, $"Barrel_{n++:00}", "SM_Barrel_01", pos, yaw, new Vector3(0.8f, 1.1f, 0.8f), woodDark, PrimitiveType.Cylinder); break;
-                    default: MakeBreakable(props, $"Vase_{n++:00}", "SM_Vase_01", pos, yaw, new Vector3(0.5f, 0.8f, 0.5f), clay, PrimitiveType.Cylinder); break;
+                    case "Crate": br = MakeBreakable(props, $"Crate_{n++:00}", "SM_Crate_01", pos, yaw, new Vector3(1f, 1f, 1f), wood, PrimitiveType.Cube); break;
+                    case "Barrel": br = MakeBreakable(props, $"Barrel_{n++:00}", "SM_Barrel_01", pos, yaw, new Vector3(0.8f, 1.1f, 0.8f), woodDark, PrimitiveType.Cylinder); break;
+                    default: br = MakeBreakable(props, $"Vase_{n++:00}", "SM_Vase_01", pos, yaw, new Vector3(0.5f, 0.8f, 0.5f), clay, PrimitiveType.Cylinder); break;
+                }
+                // Vases and the two mid-field props hide a health potion.
+                if (kind == "Vase" || Mathf.Abs(x) < 15f)
+                {
+                    br.healAmount = HealAmount;
+                    br.potionModel = potion;
+                    healers++;
                 }
             }
 
@@ -123,12 +133,14 @@ namespace KitFight.EditorTools
             for (int i = 0; i < trapSpots.Length; i++)
                 MakeSpikeTrap(traps, $"SpikeTrap_{i}", trapSpots[i], metal, steel);
 
-            Debug.Log($"KitFight: arena built ({n} breakables, {trapSpots.Length} spike traps, models: {(HasModel("SM_ArenaWall_01") ? "FBX" : "primitive fallback")})");
+            BuildDecor(arena, spawns, stone, wood, metal);
+
+            Debug.Log($"KitFight: arena built ({n} breakables ({healers} with potions), {trapSpots.Length} spike traps, models: {(HasModel("SM_ArenaWall_01") ? "FBX" : "primitive fallback")})");
         }
 
         // ------------------------------------------------------------------ pieces
 
-        static void MakeBreakable(Transform parent, string name, string model, Vector3 pos, float yaw, Vector3 size, Material mat, PrimitiveType prim)
+        static Breakable MakeBreakable(Transform parent, string name, string model, Vector3 pos, float yaw, Vector3 size, Material mat, PrimitiveType prim)
         {
             var root = new GameObject(name);
             root.transform.SetParent(parent, false);
@@ -161,6 +173,71 @@ namespace KitFight.EditorTools
             br.radius = Mathf.Max(b.extents.x, b.extents.z);
 
             root.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+            return br;
+        }
+
+        /// <summary>
+        /// Non-breakable dressing from the Blender pass (braziers, weapon racks, banners, rocks, statues).
+        /// Each piece is placed only when its FBX exists; solid ones get a box collider.
+        /// </summary>
+        static void BuildDecor(Transform arena, Vector3[] spawns, Material stone, Material wood, Material metal)
+        {
+            var decor = Child(arena, "Decor");
+            var layout = new (string model, float x, float z, float yaw, Vector3 size, bool solid)[]
+            {
+                // braziers flank the spawn axis on both long walls
+                ("SM_Brazier_01", -10f, 19.6f, 0f, new Vector3(0.9f, 1.3f, 0.9f), true),
+                ("SM_Brazier_01", 10f, 19.6f, 0f, new Vector3(0.9f, 1.3f, 0.9f), true),
+                ("SM_Brazier_01", -10f, -19.6f, 0f, new Vector3(0.9f, 1.3f, 0.9f), true),
+                ("SM_Brazier_01", 10f, -19.6f, 0f, new Vector3(0.9f, 1.3f, 0.9f), true),
+                // weapon racks against the east/west walls
+                ("SM_WeaponRack_01", 20.6f, 2f, -90f, new Vector3(2f, 1.8f, 0.6f), true),
+                ("SM_WeaponRack_01", -20.6f, -2f, 90f, new Vector3(2f, 1.8f, 0.6f), true),
+                // banners hang on the wall between pillars
+                ("SM_Banner_01", -2f, 21.4f, 180f, new Vector3(1.2f, 3f, 0.2f), false),
+                ("SM_Banner_01", 2f, 21.4f, 180f, new Vector3(1.2f, 3f, 0.2f), false),
+                ("SM_Banner_01", -2f, -21.4f, 0f, new Vector3(1.2f, 3f, 0.2f), false),
+                ("SM_Banner_01", 2f, -21.4f, 0f, new Vector3(1.2f, 3f, 0.2f), false),
+                // rock clusters break up the open floor
+                ("SM_Rock_01", -15f, 9f, 30f, new Vector3(1.6f, 0.9f, 1.4f), true),
+                ("SM_Rock_01", 15f, -9f, 200f, new Vector3(1.6f, 0.9f, 1.4f), true),
+                ("SM_Rock_02", 3f, 15f, 75f, new Vector3(1.1f, 0.6f, 1f), true),
+                ("SM_Rock_02", -3f, -15f, 250f, new Vector3(1.1f, 0.6f, 1f), true),
+                // statues in the east/west wall middles
+                ("SM_Statue_01", 20.3f, -8f, -90f, new Vector3(1.2f, 3.2f, 1.2f), true),
+                ("SM_Statue_01", -20.3f, 8f, 90f, new Vector3(1.2f, 3.2f, 1.2f), true),
+            };
+            int placed = 0;
+            foreach (var (model, x, z, yaw, size, solid) in layout)
+            {
+                if (!HasModel(model)) continue;
+                var pos = new Vector3(x, 0f, z);
+                if (TooClose(pos, spawns, 4f)) continue;
+                var mat = model.Contains("Rock") || model.Contains("Statue") ? stone : model.Contains("Brazier") ? metal : wood;
+                var go = Place(decor, $"{model}_{placed++:00}", model, pos, yaw, size, mat, PrimitiveType.Cube, Align.Bottom);
+                RemoveColliders(go);
+                if (solid)
+                {
+                    var b = LocalBounds(go.transform, go);
+                    var box = go.AddComponent<BoxCollider>();
+                    box.center = b.center;
+                    box.size = b.size;
+                }
+                MarkStatic(go);
+                if (model.Contains("Brazier")) AddFireLight(go.transform, size.y);
+            }
+        }
+
+        static void AddFireLight(Transform parent, float height)
+        {
+            var l = new GameObject("FireLight").AddComponent<Light>();
+            l.transform.SetParent(parent, false);
+            l.transform.localPosition = Vector3.up * (height + 0.3f);
+            l.type = LightType.Point;
+            l.color = new Color(1f, 0.6f, 0.25f);
+            l.range = 6f;
+            l.intensity = 2.5f;
+            l.shadows = LightShadows.None;
         }
 
         static void MakeSpikeTrap(Transform parent, string name, Vector3 pos, Material plateMat, Material spikeMat)

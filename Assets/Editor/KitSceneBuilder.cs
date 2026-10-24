@@ -3,6 +3,7 @@ using UnityEditor;
 using UnityEditor.Animations;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace KitFight.EditorTools
 {
@@ -18,6 +19,11 @@ namespace KitFight.EditorTools
         const string UpperMaskPath = Root + "Models/Avatar Masks/Human Body Upper Mask.mask";
         const string KitsDir = "Assets/Kits";
         const string ScenePath = "Assets/Scenes/KitTest.unity";
+        const string HudLayout = "Assets/UI/Layouts/Hud.uxml";
+        const string PanelSettingsPath = "Assets/UI/Settings/KitFightPanel.asset";
+        const string ThemePath = "Assets/UI/Settings/KitFightRuntime.tss";
+        const float SpecialChargeSpeed = 1f;
+        const float SpecialAttackSpeed = 1f;
 
         struct KitSpec
         {
@@ -26,6 +32,7 @@ namespace KitFight.EditorTools
             public string[] combo;
             public float attackSpeed, moveMult;
             public float damage, range, knockback, hitStart;
+            public bool dashAttack;
         }
 
         static readonly KitSpec[] Specs =
@@ -39,7 +46,7 @@ namespace KitFight.EditorTools
                 offhand = "Human_Dagger", offhandEuler = new Vector3(0f, 180f, 0f),
                 blockLoop = "Combat/1H/HumanM@ParryDW01 - Loop", blockHit = "Combat/1H/HumanM@ParryDW01 - Hit",
                 combo = new[] { "Combat/1H/HumanM@Attack1H04_L", "Combat/1H/HumanM@Attack1H04_R", "Combat/1H/HumanM@Attack1H05_L", "Combat/1H/HumanM@Attack1H05_R", "Combat/1H/HumanM@AttackDW01", "Combat/1H/HumanM@AttackDW02" },
-                attackSpeed = 1.6f, moveMult = 1.15f, damage = 7f, range = 1.7f, knockback = 1.5f, hitStart = 0.35f },
+                attackSpeed = 1.6f, moveMult = 1.35f, damage = 7f, range = 1.7f, knockback = 1.5f, hitStart = 0.35f, dashAttack = true },
             new KitSpec { name = "Greatsword", weapon = "Human_Greatsword", idle = "Combat/2H/HumanM@CombatIdle2H01",
                 blockLoop = "Combat/2H/HumanM@Parry2H01 - Loop", blockHit = "Combat/2H/HumanM@Parry2H01 - Hit",
                 combo = new[] { "Combat/2H/HumanM@Attack2H01", "Combat/2H/HumanM@Attack2H02", "Combat/2H/HumanM@Attack2H03", "Combat/2H/HumanM@Attack2H04" },
@@ -104,6 +111,8 @@ namespace KitFight.EditorTools
             var knockedDown = LoadClipAt("Assets/Mixamo/Mixamo@KnockedDown.fbx");
             var gettingUp = LoadClipAt("Assets/Mixamo/Mixamo@GettingUp.fbx");
             var victory = LoadClipAt("Assets/Mixamo/Mixamo@Victory.fbx");
+            var specialCharge = LoadClipAt("Assets/Mixamo/Mixamo@SpecialCharge.fbx");
+            var specialAttack = LoadClipAt("Assets/Mixamo/Mixamo@SpecialAttack.fbx");
 
             var kits = new KitData[Specs.Length];
             for (int i = 0; i < Specs.Length; i++)
@@ -156,6 +165,9 @@ namespace KitFight.EditorTools
                 AddState(sm, "KnockedDown", knockedDown, 2.2f);
                 AddState(sm, "GettingUp", gettingUp, 2.4f);
                 AddState(sm, "Victory", victory, 1f);
+                // Special: charge loop, then the blow. Speeds are matched to specialChargeTime/specialHitTime in PlayerCombat.
+                AddState(sm, "SpecialCharge", specialCharge ? specialCharge : blockClip, SpecialChargeSpeed);
+                AddState(sm, "SpecialAttack", specialAttack ? specialAttack : clips[clips.Length - 1], SpecialAttackSpeed);
 
                 // Upper-body layer: attacks play here so the legs can keep walking/running while swinging.
                 // PlayerCombat drives its weight (1 while attacking) and also plays the attack full-body when standing still.
@@ -196,6 +208,7 @@ namespace KitFight.EditorTools
                 kit.hitStart = s.hitStart;
                 kit.attackSpeed = s.attackSpeed;
                 kit.moveSpeedMultiplier = s.moveMult;
+                kit.dashAttack = s.dashAttack;
                 EditorUtility.SetDirty(kit);
                 kits[i] = kit;
             }
@@ -272,11 +285,36 @@ namespace KitFight.EditorTools
             if (!cam.GetComponent<CameraOccluderFade>()) cam.gameObject.AddComponent<CameraOccluderFade>();
             cam.transform.position = new Vector3(0f, 6f, -12f);
 
+            BuildHud();
+
             Directory.CreateDirectory("Assets/Scenes");
             EditorSceneManager.SaveScene(scene, ScenePath);
 
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>UI Toolkit HUD: PanelSettings (scale with screen, 1920x1080 reference) + UIDocument + HudView.</summary>
+        static void BuildHud()
+        {
+            var settings = AssetDatabase.LoadAssetAtPath<PanelSettings>(PanelSettingsPath);
+            if (!settings)
+            {
+                settings = ScriptableObject.CreateInstance<PanelSettings>();
+                AssetDatabase.CreateAsset(settings, PanelSettingsPath);
+            }
+            settings.themeStyleSheet = AssetDatabase.LoadAssetAtPath<ThemeStyleSheet>(ThemePath);
+            settings.scaleMode = PanelScaleMode.ScaleWithScreenSize;
+            settings.referenceResolution = new Vector2Int(1920, 1080);
+            settings.screenMatchMode = PanelScreenMatchMode.MatchWidthOrHeight;
+            settings.match = 0.5f;
+            EditorUtility.SetDirty(settings);
+
+            var go = new GameObject("HUD");
+            var doc = go.AddComponent<UIDocument>();
+            doc.panelSettings = settings;
+            doc.visualTreeAsset = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(HudLayout);
+            go.AddComponent<HudView>();
         }
     }
 }

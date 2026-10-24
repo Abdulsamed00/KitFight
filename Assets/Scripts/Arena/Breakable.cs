@@ -5,8 +5,8 @@ using UnityEngine;
 namespace KitFight
 {
     /// <summary>
-    /// Decorative prop that shatters when an attack's hit scan reaches it. Purely cosmetic:
-    /// no damage, no loot, no hit-stop/shake, and it never interrupts the attacker.
+    /// Prop that shatters when an attack's hit scan reaches it: no damage, no hit-stop/shake, and it never
+    /// interrupts the attacker. Props with healAmount > 0 drop a HealthPickup when broken.
     /// Commands: Break(fromPosition), ResetObject(). GameManager resets all of them every round.
     /// </summary>
     public class Breakable : MonoBehaviour
@@ -23,6 +23,12 @@ namespace KitFight
         public float upwardForce = 2f;
         public float debrisLifetime = 2.2f;
         public float shrinkTime = 0.5f;
+
+        [Header("Loot")]
+        [Tooltip("Health restored by the potion this prop drops; 0 = drops nothing.")]
+        public float healAmount;
+        [Tooltip("Potion model for the pickup. Empty = a glowing sphere.")]
+        public GameObject potionModel;
 
         public bool IsBroken { get; private set; }
 
@@ -70,6 +76,8 @@ namespace KitFight
 
             StopAllCoroutines();
             StartCoroutine(FadeDebris(pieces));
+
+            if (healAmount > 0f) HealthPickup.Spawn(transform.position, healAmount, potionModel);
         }
 
         public void ResetObject()

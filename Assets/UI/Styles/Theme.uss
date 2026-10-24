@@ -1,0 +1,20 @@
+/* KitFight palette: every UI colour lives here (see "Art rules" in CLAUDE.md). */
+:root {
+    --kf-ink: rgb(14, 11, 16);
+    --kf-panel: rgba(18, 14, 20, 0.82);
+    --kf-panel-soft: rgba(18, 14, 20, 0.55);
+    --kf-gold: rgb(214, 172, 92);
+    --kf-gold-dim: rgb(120, 96, 52);
+    --kf-text: rgb(244, 236, 220);
+    --kf-muted: rgb(160, 150, 136);
+    --kf-p1: rgb(90, 155, 255);
+    --kf-p2: rgb(255, 102, 90);
+    --kf-health: rgb(216, 58, 52);
+    --kf-health-low: rgb(255, 70, 40);
+    --kf-trail: rgb(250, 238, 214);
+    --kf-stamina: rgb(242, 193, 78);
+    --kf-stamina-ready: rgb(255, 224, 120);
+    --kf-guard: rgb(255, 150, 60);
+    --kf-heal: rgb(76, 255, 122);
+    --kf-track: rgba(255, 255, 255, 0.08);
+}

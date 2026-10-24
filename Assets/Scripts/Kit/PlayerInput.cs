@@ -43,6 +43,7 @@ namespace KitFight
                 combat.Dodge(dir);
             }
             if (source.AttackDown) combat.Attack();
+            if (source.SpecialDown) combat.SpecialAttack();
             combat.SetBlock(source.BlockHeld);
         }
     }

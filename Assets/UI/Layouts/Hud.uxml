@@ -1,0 +1,115 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="../Styles/Theme.uss" />
+    <Style src="../Styles/Hud.uss" />
+    <ui:VisualElement name="root" class="hud" picking-mode="Ignore">
+
+        <!-- ============================================================ fight -->
+        <ui:VisualElement name="fight-layer" class="layer" picking-mode="Ignore">
+            <ui:VisualElement name="top-bar" class="top-bar" picking-mode="Ignore">
+                <ui:VisualElement name="p1-panel" class="player-panel p1" picking-mode="Ignore">
+                    <ui:VisualElement class="name-row" picking-mode="Ignore">
+                        <ui:Label name="name" text="OYUNCU 1" class="player-name" />
+                        <ui:Label name="kit" text="SWORD" class="player-kit" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="bar health-bar" picking-mode="Ignore">
+                        <ui:VisualElement name="health-trail" class="fill trail" picking-mode="Ignore" />
+                        <ui:VisualElement name="health-fill" class="fill health" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="stamina-bar" class="bar stamina-bar" picking-mode="Ignore">
+                        <ui:VisualElement class="cost-mark" picking-mode="Ignore" />
+                        <ui:VisualElement name="stamina-fill" class="fill stamina" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="bar guard-bar" picking-mode="Ignore">
+                        <ui:VisualElement name="guard-fill" class="fill guard" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="pips" picking-mode="Ignore">
+                        <ui:VisualElement class="pip" picking-mode="Ignore" />
+                        <ui:VisualElement class="pip" picking-mode="Ignore" />
+                        <ui:VisualElement class="pip" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
+                <ui:VisualElement class="vs-badge" picking-mode="Ignore">
+                    <ui:Label text="VS" class="vs-text" />
+                </ui:VisualElement>
+
+                <ui:VisualElement name="p2-panel" class="player-panel p2" picking-mode="Ignore">
+                    <ui:VisualElement class="name-row" picking-mode="Ignore">
+                        <ui:Label name="name" text="OYUNCU 2" class="player-name" />
+                        <ui:Label name="kit" text="DAGGER" class="player-kit" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="bar health-bar" picking-mode="Ignore">
+                        <ui:VisualElement name="health-trail" class="fill trail" picking-mode="Ignore" />
+                        <ui:VisualElement name="health-fill" class="fill health" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="stamina-bar" class="bar stamina-bar" picking-mode="Ignore">
+                        <ui:VisualElement class="cost-mark" picking-mode="Ignore" />
+                        <ui:VisualElement name="stamina-fill" class="fill stamina" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="bar guard-bar" picking-mode="Ignore">
+                        <ui:VisualElement name="guard-fill" class="fill guard" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="pips" picking-mode="Ignore">
+                        <ui:VisualElement class="pip" picking-mode="Ignore" />
+                        <ui:VisualElement class="pip" picking-mode="Ignore" />
+                        <ui:VisualElement class="pip" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <ui:Label name="p1-tag" text="P1" class="fighter-tag p1" picking-mode="Ignore" />
+            <ui:Label name="p2-tag" text="P2" class="fighter-tag p2" picking-mode="Ignore" />
+
+            <ui:VisualElement class="legend-row" picking-mode="Ignore">
+                <ui:Label name="p1-legend" class="legend p1" />
+                <ui:Label name="p2-legend" class="legend p2" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- ============================================================ lobby -->
+        <ui:VisualElement name="lobby-layer" class="layer lobby" picking-mode="Ignore">
+            <ui:VisualElement class="lobby-title-box" picking-mode="Ignore">
+                <ui:Label text="KITFIGHT" class="game-title" />
+                <ui:Label text="KİT SEÇİMİ" class="lobby-subtitle" />
+            </ui:VisualElement>
+            <ui:VisualElement class="card-row" picking-mode="Ignore">
+                <ui:VisualElement name="p1-card" class="lobby-card p1" picking-mode="Ignore">
+                    <ui:VisualElement class="card-accent" picking-mode="Ignore" />
+                    <ui:Label text="OYUNCU 1" class="card-player" />
+                    <ui:Label name="device" text="Bekleniyor..." class="card-device" />
+                    <ui:Label name="kit-name" text="?" class="card-kit" />
+                    <ui:VisualElement class="stats" picking-mode="Ignore">
+                        <ui:VisualElement class="stat-row" picking-mode="Ignore"><ui:Label text="HASAR" class="stat-label" /><ui:VisualElement class="stat-bar"><ui:VisualElement name="stat-damage" class="stat-fill" /></ui:VisualElement></ui:VisualElement>
+                        <ui:VisualElement class="stat-row" picking-mode="Ignore"><ui:Label text="MENZİL" class="stat-label" /><ui:VisualElement class="stat-bar"><ui:VisualElement name="stat-range" class="stat-fill" /></ui:VisualElement></ui:VisualElement>
+                        <ui:VisualElement class="stat-row" picking-mode="Ignore"><ui:Label text="SALDIRI HIZI" class="stat-label" /><ui:VisualElement class="stat-bar"><ui:VisualElement name="stat-speed" class="stat-fill" /></ui:VisualElement></ui:VisualElement>
+                        <ui:VisualElement class="stat-row" picking-mode="Ignore"><ui:Label text="HAREKET" class="stat-label" /><ui:VisualElement class="stat-bar"><ui:VisualElement name="stat-move" class="stat-fill" /></ui:VisualElement></ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:Label name="hint" class="card-hint" />
+                    <ui:Label name="status" class="card-status" />
+                </ui:VisualElement>
+
+                <ui:VisualElement name="p2-card" class="lobby-card p2" picking-mode="Ignore">
+                    <ui:VisualElement class="card-accent" picking-mode="Ignore" />
+                    <ui:Label text="OYUNCU 2" class="card-player" />
+                    <ui:Label name="device" text="Bekleniyor..." class="card-device" />
+                    <ui:Label name="kit-name" text="?" class="card-kit" />
+                    <ui:VisualElement class="stats" picking-mode="Ignore">
+                        <ui:VisualElement class="stat-row" picking-mode="Ignore"><ui:Label text="HASAR" class="stat-label" /><ui:VisualElement class="stat-bar"><ui:VisualElement name="stat-damage" class="stat-fill" /></ui:VisualElement></ui:VisualElement>
+                        <ui:VisualElement class="stat-row" picking-mode="Ignore"><ui:Label text="MENZİL" class="stat-label" /><ui:VisualElement class="stat-bar"><ui:VisualElement name="stat-range" class="stat-fill" /></ui:VisualElement></ui:VisualElement>
+                        <ui:VisualElement class="stat-row" picking-mode="Ignore"><ui:Label text="SALDIRI HIZI" class="stat-label" /><ui:VisualElement class="stat-bar"><ui:VisualElement name="stat-speed" class="stat-fill" /></ui:VisualElement></ui:VisualElement>
+                        <ui:VisualElement class="stat-row" picking-mode="Ignore"><ui:Label text="HAREKET" class="stat-label" /><ui:VisualElement class="stat-bar"><ui:VisualElement name="stat-move" class="stat-fill" /></ui:VisualElement></ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:Label name="hint" class="card-hint" />
+                    <ui:Label name="status" class="card-status" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- ============================================================ banners -->
+        <ui:VisualElement name="center-layer" class="layer center" picking-mode="Ignore">
+            <ui:Label name="banner" class="banner" />
+            <ui:Label name="countdown" class="countdown" />
+            <ui:Label name="subline" class="subline" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

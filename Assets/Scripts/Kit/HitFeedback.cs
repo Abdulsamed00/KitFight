@@ -39,6 +39,16 @@ namespace KitFight
             }
         }
 
+        /// <summary>Green sparkle rising from a picked-up health potion.</summary>
+        public static void Heal(Vector3 point) => Sparks(point, Vector3.up, new Color(0.35f, 1f, 0.5f), 24, 3f, -0.4f);
+
+        /// <summary>Burst around a fighter when a charged special attack is released.</summary>
+        public static void SpecialRelease(Vector3 point, Vector3 dir, Color color)
+        {
+            FightCamera.Shake(0.12f, 0.2f);
+            Sparks(point, dir, color, 40, 9f);
+        }
+
         public static void SlowMo(float scale, float realSeconds) => Instance.StartCoroutine(Instance.SlowMoRoutine(scale, realSeconds));
 
         IEnumerator SlowMoRoutine(float scale, float realSeconds)
@@ -58,7 +68,7 @@ namespace KitFight
             return sparkMaterial;
         }
 
-        static void Sparks(Vector3 point, Vector3 dir, Color color, int count, float speed)
+        static void Sparks(Vector3 point, Vector3 dir, Color color, int count, float speed, float gravity = 1.6f)
         {
             var go = new GameObject("HitSparks");
             go.SetActive(false);
@@ -74,7 +84,7 @@ namespace KitFight
             main.startSpeed = new ParticleSystem.MinMaxCurve(speed * 0.5f, speed);
             main.startSize = new ParticleSystem.MinMaxCurve(0.04f, 0.1f);
             main.startColor = color;
-            main.gravityModifier = 1.6f;
+            main.gravityModifier = gravity;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
             main.maxParticles = 64;
 

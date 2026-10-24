@@ -1,0 +1,215 @@
+/* HUD layout. Sizes are percentages / flex; pixel values (text, bar thickness) are at the 1920x1080
+   reference resolution and scale with the PanelSettings "Scale With Screen Size" mode. */
+
+.hud {
+    flex-grow: 1;
+    color: var(--kf-text);
+    -unity-font-style: bold;
+}
+
+.layer {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+}
+
+/* ------------------------------------------------------------ top bar */
+
+.top-bar {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 2.5% 2.5% 0 2.5%;
+}
+
+.player-panel {
+    width: 40%;
+    padding: 12px 16px 10px 16px;
+    background-color: var(--kf-panel);
+    border-width: 2px;
+    border-color: var(--kf-gold-dim);
+    border-radius: 6px;
+}
+.player-panel.p1 { border-left-width: 6px; border-left-color: var(--kf-p1); }
+.player-panel.p2 { border-right-width: 6px; border-right-color: var(--kf-p2); }
+
+.name-row {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 6px;
+}
+.p2 .name-row { flex-direction: row-reverse; }
+
+.player-name { font-size: 26px; -unity-text-outline-width: 1px; -unity-text-outline-color: var(--kf-ink); }
+.p1 .player-name { color: var(--kf-p1); }
+.p2 .player-name { color: var(--kf-p2); }
+.player-kit { font-size: 20px; color: var(--kf-gold); letter-spacing: 2px; }
+
+.bar {
+    flex-direction: row;
+    background-color: var(--kf-track);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+.p2 .bar { flex-direction: row-reverse; }   /* P2 drains toward the screen edge */
+
+.fill { height: 100%; width: 100%; }
+
+.health-bar { height: 30px; border-width: 1px; border-color: var(--kf-ink); }
+.health-bar .trail { position: absolute; background-color: var(--kf-trail); opacity: 0.85; }
+.p2 .health-bar .trail { right: 0; }
+.health-bar .health { background-color: var(--kf-health); }
+.health-bar .health.low { background-color: var(--kf-health-low); }
+
+.stamina-bar { height: 12px; }
+.stamina-bar .stamina { background-color: var(--kf-stamina); opacity: 0.55; }
+.stamina-bar.ready .stamina { opacity: 1; background-color: var(--kf-stamina-ready); }
+.stamina-bar.charging { border-width: 1px; border-color: var(--kf-stamina-ready); }
+/* Marks the special-attack cost (60% of the bar). */
+.cost-mark { position: absolute; left: 60%; top: 0; bottom: 0; width: 2px; background-color: var(--kf-ink); }
+.p2 .cost-mark { left: auto; right: 60%; }
+
+.guard-bar { height: 5px; background-color: rgba(0, 0, 0, 0); }
+.guard-bar .guard { background-color: var(--kf-guard); }
+
+.pips { flex-direction: row; margin-top: 8px; }
+.p2 .pips { flex-direction: row-reverse; }
+.pip {
+    width: 20px; height: 20px;
+    margin: 0 4px;
+    border-width: 2px;
+    border-color: var(--kf-gold-dim);
+    border-radius: 10px;
+    background-color: var(--kf-panel-soft);
+    rotate: 45deg;
+}
+.pip.won { background-color: var(--kf-gold); border-color: var(--kf-trail); }
+
+.vs-badge {
+    margin-top: 1.5%;
+    width: 64px; height: 64px;
+    align-items: center; justify-content: center;
+    background-color: var(--kf-panel);
+    border-width: 2px; border-color: var(--kf-gold);
+    border-radius: 32px;
+}
+.vs-text { font-size: 26px; color: var(--kf-gold); -unity-text-align: middle-center; }
+
+/* ------------------------------------------------------------ world tags + legend */
+
+.fighter-tag {
+    position: absolute;
+    font-size: 24px;
+    padding: 2px 10px;
+    background-color: var(--kf-panel-soft);
+    border-radius: 4px;
+    -unity-text-align: middle-center;
+}
+.fighter-tag.p1 { color: var(--kf-p1); }
+.fighter-tag.p2 { color: var(--kf-p2); }
+
+.legend-row {
+    position: absolute;
+    left: 2.5%; right: 2.5%; bottom: 2%;
+    flex-direction: row;
+    justify-content: space-between;
+}
+.legend {
+    max-width: 48%;
+    font-size: 15px;
+    color: var(--kf-muted);
+    white-space: normal;
+    -unity-font-style: normal;
+    padding: 4px 10px;
+    background-color: var(--kf-panel-soft);
+    border-radius: 4px;
+}
+.legend.p2 { -unity-text-align: upper-right; }
+
+/* ------------------------------------------------------------ centre banners */
+
+.center {
+    align-items: center;
+    justify-content: center;
+}
+.banner {
+    font-size: 72px;
+    color: var(--kf-gold);
+    -unity-text-align: middle-center;
+    -unity-text-outline-width: 2px;
+    -unity-text-outline-color: var(--kf-ink);
+    padding: 10px 40px;
+    background-color: var(--kf-panel-soft);
+    border-top-width: 2px; border-bottom-width: 2px;
+    border-color: var(--kf-gold-dim);
+}
+.banner.fight { color: var(--kf-health-low); font-size: 110px; background-color: rgba(0, 0, 0, 0); border-width: 0; }
+.countdown {
+    font-size: 150px;
+    color: var(--kf-text);
+    -unity-text-align: middle-center;
+    -unity-text-outline-width: 3px;
+    -unity-text-outline-color: var(--kf-ink);
+}
+.subline { font-size: 24px; margin-top: 16px; color: var(--kf-text); -unity-font-style: normal; }
+
+/* ------------------------------------------------------------ lobby */
+
+.lobby {
+    background-color: rgba(10, 8, 12, 0.45);
+    align-items: center;
+    justify-content: space-between;
+    padding: 4% 3% 4% 3%;
+}
+.lobby-title-box { align-items: center; }
+.game-title {
+    font-size: 96px;
+    color: var(--kf-gold);
+    letter-spacing: 12px;
+    -unity-text-outline-width: 2px;
+    -unity-text-outline-color: var(--kf-ink);
+}
+.lobby-subtitle { font-size: 28px; color: var(--kf-text); letter-spacing: 6px; }
+
+.card-row {
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+}
+.lobby-card {
+    width: 38%;
+    padding: 20px 24px;
+    background-color: var(--kf-panel);
+    border-width: 2px;
+    border-color: var(--kf-gold-dim);
+    border-radius: 8px;
+    opacity: 0.7;
+}
+.lobby-card.joined { opacity: 1; }
+.lobby-card.ready { border-color: var(--kf-heal); }
+.card-accent { position: absolute; left: 0; right: 0; top: 0; height: 6px; border-top-left-radius: 6px; border-top-right-radius: 6px; }
+.p1 .card-accent { background-color: var(--kf-p1); }
+.p2 .card-accent { background-color: var(--kf-p2); }
+
+.card-player { font-size: 28px; }
+.p1 .card-player { color: var(--kf-p1); }
+.p2 .card-player { color: var(--kf-p2); }
+.card-device { font-size: 18px; color: var(--kf-muted); letter-spacing: 2px; }
+.card-kit {
+    font-size: 56px;
+    color: var(--kf-text);
+    -unity-text-align: middle-center;
+    margin: 10px 0 12px 0;
+}
+.lobby-card.ready .card-kit { color: var(--kf-heal); }
+
+.stats { margin-bottom: 12px; }
+.stat-row { flex-direction: row; align-items: center; margin: 3px 0; }
+.stat-label { width: 32%; font-size: 16px; color: var(--kf-muted); }
+.stat-bar { flex-grow: 1; height: 10px; background-color: var(--kf-track); border-radius: 3px; overflow: hidden; }
+.stat-fill { height: 100%; width: 0; background-color: var(--kf-gold); }
+
+.card-hint { font-size: 15px; color: var(--kf-muted); white-space: normal; -unity-font-style: normal; }
+.card-status { font-size: 18px; margin-top: 10px; color: var(--kf-text); -unity-text-align: middle-center; }
+.lobby-card.ready .card-status { color: var(--kf-heal); }
