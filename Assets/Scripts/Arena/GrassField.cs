@@ -8,7 +8,7 @@ namespace KitFight
     /// Visual only: scatters grass clumps over the arena floor and draws them with GPU instancing
     /// (KitFight/Grass shader). Spots blocked by colliders (props, pillars) and spike-trap plates stay bare.
     /// Every frame the fighters' positions, plus a short fading trail behind them, are sent to the shader
-    /// so the blades bend away and slowly stand back up.
+    /// so the blades lean away and rustle, harder the faster the fighter moves, and calm down behind them.
     /// </summary>
     [ExecuteAlways]
     public class GrassField : MonoBehaviour
@@ -24,9 +24,12 @@ namespace KitFight
         public float clearRadius = 0.3f;
         public int seed = 17;
 
-        [Header("Trail (grass stays pressed behind a fighter for a moment)")]
+        [Header("Trail (grass keeps rustling behind a fighter for a moment)")]
         public float trailInterval = 0.15f;
         public float trailLife = 0.9f;
+        [Tooltip("Push strength while standing still (0..1); full strength at runSpeed.")]
+        public float idleStrength = 0.15f;
+        public float runSpeed = 4.5f;
 
         const int MaxPushers = 8;   // must match _KFPushers[8] in Grass.shader
         const int Batch = 1023;
@@ -37,7 +40,16 @@ namespace KitFight
 
         readonly List<Matrix4x4> matrices = new List<Matrix4x4>();
         readonly Vector4[] pushers = new Vector4[MaxPushers];
-        readonly Dictionary<PlayerCombat, List<Vector4>> trails = new Dictionary<PlayerCombat, List<Vector4>>(); // xyz pos, w time
+        struct TrailPoint { public Vector3 pos; public float time, strength; }
+
+        class Mover
+        {
+            public Vector3 lastPos;
+            public float strength;
+            public readonly List<TrailPoint> trail = new List<TrailPoint>();
+        }
+
+        readonly Dictionary<PlayerCombat, Mover> movers = new Dictionary<PlayerCombat, Mover>();
         MaterialPropertyBlock props;
         float nextTrailSample;
 
@@ -117,14 +129,23 @@ namespace KitFight
             foreach (var pc in PlayerCombat.All)
             {
                 var pos = pc.transform.position;
-                if (n < MaxPushers) pushers[n++] = new Vector4(pos.x, pos.y, pos.z, 1f);
+                if (!movers.TryGetValue(pc, out var m)) movers[pc] = m = new Mover { lastPos = pos };
 
-                if (!trails.TryGetValue(pc, out var trail)) trails[pc] = trail = new List<Vector4>();
-                if (sample) trail.Insert(0, new Vector4(pos.x, pos.y, pos.z, Time.time));
-                trail.RemoveAll(t => Time.time - t.w > trailLife);
-                // Older samples press less, so the blades rise back up behind the fighter.
-                for (int i = 0; i < trail.Count && i < 3 && n < MaxPushers; i++)
-                    pushers[n++] = new Vector4(trail[i].x, trail[i].y, trail[i].z, 0.8f * (1f - (Time.time - trail[i].w) / trailLife));
+                // Strength follows the fighter's ground speed (smoothed), so standing still barely stirs the grass.
+                float speed = Time.deltaTime > 0f ? Vector3.ProjectOnPlane(pos - m.lastPos, Vector3.up).magnitude / Time.deltaTime : 0f;
+                m.lastPos = pos;
+                float target = Mathf.Lerp(idleStrength, 1f, Mathf.Clamp01(speed / runSpeed));
+                m.strength = Mathf.MoveTowards(m.strength, target, 4f * Time.deltaTime);
+                if (n < MaxPushers) pushers[n++] = new Vector4(pos.x, pos.y, pos.z, m.strength);
+
+                if (sample) m.trail.Insert(0, new TrailPoint { pos = pos, time = Time.time, strength = m.strength });
+                m.trail.RemoveAll(t => Time.time - t.time > trailLife);
+                // Older samples rustle less, so the grass calms down behind the fighter.
+                for (int i = 0; i < m.trail.Count && i < 3 && n < MaxPushers; i++)
+                {
+                    var t = m.trail[i];
+                    pushers[n++] = new Vector4(t.pos.x, t.pos.y, t.pos.z, t.strength * 0.8f * (1f - (Time.time - t.time) / trailLife));
+                }
             }
             Shader.SetGlobalVectorArray(PushersId, pushers);
             Shader.SetGlobalFloat(PusherCountId, n);

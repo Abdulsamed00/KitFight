@@ -276,6 +276,10 @@ namespace KitFight.EditorTools
             mat.enableInstancing = true;
             mat.SetColor("_BaseColor", new Color(0.13f, 0.25f, 0.08f));
             mat.SetColor("_TipColor", new Color(0.52f, 0.70f, 0.28f));
+            mat.SetFloat("_PushRadius", 1.1f);
+            mat.SetFloat("_PushStrength", 0.22f);
+            mat.SetFloat("_RustleStrength", 0.14f);
+            mat.SetFloat("_RustleSpeed", 13f);
             EditorUtility.SetDirty(mat);
 
             var go = new GameObject("Grass");

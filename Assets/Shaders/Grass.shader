@@ -1,6 +1,7 @@
 // Instanced grass for the arena floor (drawn by GrassField with Graphics.RenderMeshInstanced).
-// Blades sway in the wind and bend away from the fighters: GrassField uploads up to 8 "pushers"
-// (_KFPushers: xyz = position, w = strength 0..1; current positions plus a short fading trail).
+// Blades sway in the wind and rustle around the fighters: GrassField uploads up to 8 "pushers"
+// (_KFPushers: xyz = position, w = strength 0..1, scaled by the fighter's speed; current positions plus a
+// short fading trail). Near a pusher the blades lean away a little and shake; the shake dies out with the trail.
 Shader "KitFight/Grass"
 {
     Properties
@@ -11,7 +12,9 @@ Shader "KitFight/Grass"
         _WindStrength ("Wind Strength", Float) = 0.08
         _WindSpeed ("Wind Speed", Float) = 1.6
         _PushRadius ("Push Radius", Float) = 1.1
-        _PushStrength ("Push Strength", Float) = 0.6
+        _PushStrength ("Lean Away Strength", Float) = 0.22
+        _RustleStrength ("Rustle Strength", Float) = 0.14
+        _RustleSpeed ("Rustle Speed", Float) = 13
     }
 
     SubShader
@@ -30,6 +33,8 @@ Shader "KitFight/Grass"
             float _WindSpeed;
             float _PushRadius;
             float _PushStrength;
+            float _RustleStrength;
+            float _RustleSpeed;
         CBUFFER_END
 
         float4 _KFPushers[8];
@@ -47,18 +52,20 @@ Shader "KitFight/Grass"
             ws.xz += float2(sin(phase), cos(phase * 0.8)) * _WindStrength * bend;
 
             float2 push = 0;
-            float flatten = 0;
+            float rustle = 0;
             for (int i = 0; i < 8; i++)
             {
                 if (i >= (int)_KFPusherCount) break;
                 float2 d = root.xz - _KFPushers[i].xz;
                 float dist = length(d);
                 float k = saturate(1 - dist / _PushRadius) * _KFPushers[i].w;
-                push += (dist > 0.001 ? d / dist : float2(0, 0)) * k;
-                flatten = max(flatten, k);
+                push += (dist > 0.001 ? d / dist : float2(0, 0)) * k * k;   // squared: mostly the fighter itself, not the trail
+                rustle = max(rustle, k);
             }
             ws.xz += push * _PushStrength * bend;
-            ws.y -= flatten * _BladeHeight * 0.55 * bend;   // pressed down, not just tilted
+            // Quick per-blade shake; each clump has its own phase so it reads as rustling, not a wave.
+            float t = _Time.y * _RustleSpeed + root.x * 7.3 + root.z * 5.1;
+            ws.xz += float2(sin(t), sin(t * 1.37 + 1.7)) * rustle * _RustleStrength * bend;
             return ws;
         }
         ENDHLSL
