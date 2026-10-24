@@ -20,8 +20,11 @@ namespace KitFight
         [Tooltip("Hits at or above this damage use the heavy hit reaction.")]
         public float heavyHitDamage = 14f;
 
-        [Header("Knockdown (combo finisher of any kit except light ones)")]
-        public float knockdownMinDamage = 12f;
+        [Header("Combo finisher (any kit except light ones): heavy stagger + extra knockback")]
+        public float finisherMinDamage = 12f;
+        public float finisherKnockback = 1.6f;  // x kit knockback
+
+        [Header("Knockdown (special attack)")]
         public float knockdownLieTime = 1.15f;  // on the ground (clip sped up in the controller)
         public float getUpTime = 1.1f;         // getting up; invulnerable for the whole knockdown
 
@@ -259,12 +262,12 @@ namespace KitFight
 
         void DoHit()
         {
-            bool finisher = step == kit.comboClips.Length - 1 && kit.damage >= knockdownMinDamage;
-            HitScan(kit.damage, kit.range, kit.arc, kit.knockback, finisher, false);
+            bool finisher = step == kit.comboClips.Length - 1 && kit.damage >= finisherMinDamage;
+            HitScan(kit.damage, kit.range, kit.arc, kit.knockback * (finisher ? finisherKnockback : 1f), false, false, finisher);
         }
 
         /// <summary>Cone hit scan in front of the player: fighters take the hit, props shatter.</summary>
-        void HitScan(float damage, float range, float arc, float knockback, bool knockdown, bool guardCrush)
+        void HitScan(float damage, float range, float arc, float knockback, bool knockdown, bool guardCrush, bool stagger = false)
         {
             foreach (var other in All)
             {
@@ -272,7 +275,7 @@ namespace KitFight
                 var to = Vector3.ProjectOnPlane(other.transform.position - transform.position, Vector3.up);
                 if (to.magnitude > range + 0.3f) continue;
                 if (to.sqrMagnitude > 0.01f && Vector3.Angle(transform.forward, to) > arc * 0.5f) continue;
-                other.ReceiveHit(damage, knockback, transform.position, this, knockdown, false, guardCrush);
+                other.ReceiveHit(damage, knockback, transform.position, this, knockdown, false, guardCrush, stagger);
             }
 
             // Props in the same cone shatter too (no hit-stop, the swing is not affected).
@@ -334,7 +337,8 @@ namespace KitFight
         /// <param name="attacker">null for environment hazards (traps): then only the victim gets hit-stop.</param>
         /// <param name="unblockable">true = guard is ignored (e.g. spikes from below).</param>
         /// <param name="guardCrush">true = a blocked hit breaks the guard outright (special attack).</param>
-        public void ReceiveHit(float damage, float knockback, Vector3 fromPosition, PlayerCombat attacker = null, bool knockdown = false, bool unblockable = false, bool guardCrush = false)
+        /// <param name="stagger">true = always the heavy hit reaction (combo finisher).</param>
+        public void ReceiveHit(float damage, float knockback, Vector3 fromPosition, PlayerCombat attacker = null, bool knockdown = false, bool unblockable = false, bool guardCrush = false, bool stagger = false)
         {
             if (dead) return;
             if (dodgeTimer > dodgeDuration - dodgeInvulnerable) return; // i-frames
@@ -388,14 +392,14 @@ namespace KitFight
             if (step < 0 && special == 0)
             {
                 StopBlock(false);
-                bool heavy = damage >= heavyHitDamage;
+                bool heavy = stagger || damage >= heavyHitDamage;
                 stunTimer = heavy ? heavyStunTime : stunTime;
                 motor.locked = true;
                 if (anim) anim.CrossFadeInFixedTime(heavy ? "HitHeavy" : "Hit", 0.05f);
             }
         }
 
-        /// <summary>Combo finisher: thrown to the ground, then gets up. Interrupts any action.</summary>
+        /// <summary>Special attack: thrown to the ground, then gets up. Interrupts any action.</summary>
         void Knockdown(Vector3 away, float knockback)
         {
             step = -1;
