@@ -16,7 +16,8 @@ namespace KitFight
         class PlayerUI
         {
             public VisualElement panel, health, trail, stamina, guard, staminaBar;
-            public Label name, kit, tag;
+            public Label name, kit, tag, lockBadge;
+            public PlayerMotor motor;
             public VisualElement[] pips;
             public VisualElement card;
             public Label cardDevice, cardKit, cardHint, cardStatus;
@@ -54,6 +55,7 @@ namespace KitFight
                 u.kit = u.panel.Q<Label>("kit");
                 u.pips = u.panel.Query(className: "pip").ToList().ToArray();
                 u.tag = root.Q<Label>(p + "-tag");
+                u.lockBadge = u.panel.Q<Label>("lock");
                 u.legend = root.Q<Label>(p + "-legend");
 
                 u.card = root.Q(p + "-card");
@@ -113,6 +115,12 @@ namespace KitFight
                 Show(u.pips[w], w < gm.WinsNeeded);
                 u.pips[w].EnableInClassList("won", w < gm.Wins(i));
             }
+
+            if (!u.motor) u.motor = gm.Fighter(i).GetComponent<PlayerMotor>();
+            var other = ui[1 - i];
+            if (!other.motor) other.motor = gm.Fighter(1 - i).GetComponent<PlayerMotor>();
+            Show(u.lockBadge, u.motor.IsLockedOn);
+            u.tag.EnableInClassList("targeted", other.motor.IsLockedOn);
 
             var src = gm.Source(i);
             u.legend.text = src != null ? src.ControlsText : "";

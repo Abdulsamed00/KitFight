@@ -34,6 +34,15 @@ namespace KitFight
         static readonly int MoveXHash = Animator.StringToHash("MoveX");
         static readonly int MoveZHash = Animator.StringToHash("MoveZ");
 
+        /// <summary>Lock-on: always face the opponent, moving sideways/back strafes instead of turning.</summary>
+        public bool IsLockedOn => lockOn && faceTarget;
+
+        bool lockOn;
+
+        public void ToggleLockOn() => lockOn = !lockOn;
+
+        public void SetLockOn(bool on) => lockOn = on;
+
         /// <summary>True while the player is actively steering (used to split attacks onto the upper body).</summary>
         public bool HasMoveInput => !locked && !blocking && moveInput.sqrMagnitude > 0.01f;
 
@@ -118,7 +127,11 @@ namespace KitFight
                 dir = (f * moveInput.y + r * moveInput.x).normalized;
             }
 
-            float top = gait == Gait.Sprint ? sprintSpeed : gait == Gait.Walk ? walkSpeed : runSpeed;
+            // Locked on there are no backward/side sprint clips, so sprinting only counts while moving toward the opponent.
+            var g = gait;
+            if (IsLockedOn && g == Gait.Sprint && Vector3.Dot(dir, FlatToTarget().normalized) < 0.5f) g = Gait.Run;
+
+            float top = g == Gait.Sprint ? sprintSpeed : g == Gait.Walk ? walkSpeed : runSpeed;
             top *= speedMultiplier * (attacking ? attackMoveFactor : 1f);
             if (blocking || locked) top = 0f;
             float mag = locked ? 0f : moveInput.magnitude;
@@ -126,7 +139,7 @@ namespace KitFight
 
             if (!locked)
             {
-                if (attacking || blocking) TurnTowards(FlatToTarget());
+                if (attacking || blocking || IsLockedOn) TurnTowards(FlatToTarget());
                 else if (dir != Vector3.zero) TurnTowards(dir);
                 else TurnTowards(FlatToTarget());
             }
@@ -137,7 +150,7 @@ namespace KitFight
             cc.Move((horizontal + impulse + Vector3.up * verticalVel) * Time.deltaTime);
 
             // Animator blend: local move direction * gait (0 idle, 1 walk, 2 run, 3 sprint).
-            float gaitValue = (mag < 0.1f || blocking || locked) ? 0f : (float)gait * Mathf.Clamp01(mag);
+            float gaitValue = (mag < 0.1f || blocking || locked) ? 0f : (float)g * Mathf.Clamp01(mag);
             var local = dir == Vector3.zero ? Vector3.zero : transform.InverseTransformDirection(dir);
             var targetMove = new Vector2(local.x, local.z) * gaitValue;
             animMove = Vector2.MoveTowards(animMove, targetMove, 10f * Time.deltaTime);

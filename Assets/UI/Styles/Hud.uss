@@ -86,6 +86,18 @@
 }
 .pip.won { background-color: var(--kf-gold); border-color: var(--kf-trail); }
 
+.pips { align-items: center; }
+.lock-badge {
+    font-size: 15px;
+    letter-spacing: 2px;
+    color: var(--kf-ink);
+    background-color: var(--kf-gold);
+    padding: 1px 8px;
+    border-radius: 3px;
+}
+.p1 .lock-badge { margin-left: auto; }
+.p2 .lock-badge { margin-right: auto; }
+
 .vs-badge {
     margin-top: 1.5%;
     width: 64px; height: 64px;
@@ -108,6 +120,8 @@
 }
 .fighter-tag.p1 { color: var(--kf-p1); }
 .fighter-tag.p2 { color: var(--kf-p2); }
+/* The opponent is locked on to this fighter. */
+.fighter-tag.targeted { border-width: 2px; border-color: var(--kf-gold); background-color: var(--kf-panel); }
 
 .legend-row {
     position: absolute;

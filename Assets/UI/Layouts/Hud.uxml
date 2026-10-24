@@ -26,6 +26,7 @@
                         <ui:VisualElement class="pip" picking-mode="Ignore" />
                         <ui:VisualElement class="pip" picking-mode="Ignore" />
                         <ui:VisualElement class="pip" picking-mode="Ignore" />
+                        <ui:Label name="lock" text="KİLİTLİ" class="lock-badge" />
                     </ui:VisualElement>
                 </ui:VisualElement>
 
@@ -53,6 +54,7 @@
                         <ui:VisualElement class="pip" picking-mode="Ignore" />
                         <ui:VisualElement class="pip" picking-mode="Ignore" />
                         <ui:VisualElement class="pip" picking-mode="Ignore" />
+                        <ui:Label name="lock" text="KİLİTLİ" class="lock-badge" />
                     </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>

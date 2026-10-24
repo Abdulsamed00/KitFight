@@ -44,6 +44,7 @@ namespace KitFight
             }
             if (source.AttackDown) combat.Attack();
             if (source.SpecialDown) combat.SpecialAttack();
+            if (source.LockDown) motor.ToggleLockOn();
             combat.SetBlock(source.BlockHeld);
         }
     }
