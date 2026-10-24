@@ -93,7 +93,7 @@ namespace KitFight
                 s.input.controlEnabled = enableControl;
             }
             foreach (var b in Breakable.All) b.ResetObject();
-            HealthPickup.ClearAll();
+            Pickup.ClearAll();
         }
 
         void StartRound()

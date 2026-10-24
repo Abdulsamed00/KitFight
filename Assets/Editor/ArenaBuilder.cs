@@ -17,7 +17,8 @@ namespace KitFight.EditorTools
         const string MatDir = "Assets/Materials/Arena";
         const float Half = 22f;           // playable area is +-22 m
         const float WallLen = 4f;
-        const float HealAmount = 25f;
+        const float HealAmount = 40f;
+        const float StaminaAmount = 50f;
 
         enum Align { Bottom, Top }
 
@@ -102,10 +103,13 @@ namespace KitFight.EditorTools
                 ("Barrel", -19f, -19f), ("Crate", -17.7f, -18.8f), ("Vase", -19.2f, -17.5f),
                 // mid-field, off the spawn line
                 ("Crate", -12f, 3.5f), ("Barrel", 12f, -3.5f),
+                // next to the cart, the hay and the obelisks
+                ("Barrel", -15.5f, 14.5f), ("Crate", 15.8f, 11f), ("Vase", 1.6f, 18.3f), ("Vase", -1.6f, -18.3f),
             };
             var rng = new System.Random(7);
-            int n = 0, healers = 0;
+            int n = 0, healers = 0, staminas = 0;
             var potion = LoadModel("SM_HealthPotion_01");
+            var staminaPotion = LoadModel("SM_StaminaPotion_01");
             Breakable br;
             foreach (var (kind, x, z) in layout)
             {
@@ -125,6 +129,13 @@ namespace KitFight.EditorTools
                     br.potionModel = potion;
                     healers++;
                 }
+                // The other crates hide a stamina potion.
+                else if (kind == "Crate")
+                {
+                    br.staminaAmount = StaminaAmount;
+                    br.potionModel = staminaPotion;
+                    staminas++;
+                }
             }
 
             // ---------------------------------------------------------- spike traps
@@ -135,7 +146,7 @@ namespace KitFight.EditorTools
 
             BuildDecor(arena, spawns, stone, wood, metal);
 
-            Debug.Log($"KitFight: arena built ({n} breakables ({healers} with potions), {trapSpots.Length} spike traps, models: {(HasModel("SM_ArenaWall_01") ? "FBX" : "primitive fallback")})");
+            Debug.Log($"KitFight: arena built ({n} breakables ({healers} health / {staminas} stamina potions), {trapSpots.Length} spike traps, models: {(HasModel("SM_ArenaWall_01") ? "FBX" : "primitive fallback")})");
         }
 
         // ------------------------------------------------------------------ pieces
@@ -206,6 +217,26 @@ namespace KitFight.EditorTools
                 // statues in the east/west wall middles
                 ("SM_Statue_01", 20.3f, -8f, -90f, new Vector3(1.2f, 3.2f, 1.2f), true),
                 ("SM_Statue_01", -20.3f, 8f, 90f, new Vector3(1.2f, 3.2f, 1.2f), true),
+                // second pass: ruins, camp clutter and landmarks to break up the floor
+                ("SM_BrokenColumn_01", -6f, 13.5f, 20f, new Vector3(4.6f, 1.2f, 2f), true),
+                ("SM_BrokenColumn_01", 6f, -13.5f, 200f, new Vector3(4.6f, 1.2f, 2f), true),
+                ("SM_Barricade_01", 14f, 5.5f, 60f, new Vector3(2.6f, 1.25f, 1.3f), true),
+                ("SM_Barricade_01", -14f, -5.5f, 240f, new Vector3(2.6f, 1.25f, 1.3f), true),
+                ("SM_HayBale_01", 17.2f, 12.5f, 10f, new Vector3(1.2f, 0.73f, 0.73f), true),
+                ("SM_HayBale_01", 18.6f, 13.6f, 80f, new Vector3(1.2f, 0.73f, 0.73f), true),
+                ("SM_HayBale_01", -17.2f, -12.5f, 190f, new Vector3(1.2f, 0.73f, 0.73f), true),
+                ("SM_Cart_01", -17.5f, 12.5f, 35f, new Vector3(3f, 1.1f, 1.4f), true),
+                ("SM_Cart_01", 17.5f, -12.5f, 215f, new Vector3(3f, 1.1f, 1.4f), true),
+                ("SM_Bench_01", -4.2f, 20.9f, 0f, new Vector3(2f, 0.5f, 0.45f), true),
+                ("SM_Bench_01", 4.2f, -20.9f, 180f, new Vector3(2f, 0.5f, 0.45f), true),
+                ("SM_DeadTree_01", 12f, 14f, 0f, new Vector3(1.6f, 3.9f, 1.5f), true),
+                ("SM_DeadTree_01", -12f, -14f, 140f, new Vector3(1.6f, 3.9f, 1.5f), true),
+                ("SM_Obelisk_01", 0f, 18.5f, 0f, new Vector3(1.4f, 4.3f, 1.4f), true),
+                ("SM_Obelisk_01", 0f, -18.5f, 0f, new Vector3(1.4f, 4.3f, 1.4f), true),
+                ("SM_Rubble_01", 5f, 9f, 30f, new Vector3(1.1f, 0.36f, 0.9f), false),
+                ("SM_Rubble_01", -5f, -9f, 210f, new Vector3(1.1f, 0.36f, 0.9f), false),
+                ("SM_Rubble_01", -9f, 17f, 100f, new Vector3(1.1f, 0.36f, 0.9f), false),
+                ("SM_Rubble_01", 9f, -17f, 280f, new Vector3(1.1f, 0.36f, 0.9f), false),
             };
             int placed = 0;
             foreach (var (model, x, z, yaw, size, solid) in layout)
@@ -213,7 +244,8 @@ namespace KitFight.EditorTools
                 if (!HasModel(model)) continue;
                 var pos = new Vector3(x, 0f, z);
                 if (TooClose(pos, spawns, 4f)) continue;
-                var mat = model.Contains("Rock") || model.Contains("Statue") ? stone : model.Contains("Brazier") ? metal : wood;
+                var mat = model.Contains("Rock") || model.Contains("Statue") || model.Contains("Column") || model.Contains("Obelisk") || model.Contains("Rubble")
+                    ? stone : model.Contains("Brazier") ? metal : wood;
                 var go = Place(decor, $"{model}_{placed++:00}", model, pos, yaw, size, mat, PrimitiveType.Cube, Align.Bottom);
                 RemoveColliders(go);
                 if (solid)

@@ -5,7 +5,7 @@ using UnityEngine.Rendering;
 namespace KitFight
 {
     /// <summary>
-    /// Visual only: hides arena wall/pillar renderers that stand between the camera and a fighter
+    /// Visual only: hides arena wall/pillar/decor renderers that stand between the camera and a fighter
     /// (they switch to ShadowsOnly, so the shadow stays) and shows them again once the view is clear.
     /// Sits on the camera; runs after FightCamera has moved it.
     /// </summary>
@@ -13,7 +13,7 @@ namespace KitFight
     public class CameraOccluderFade : MonoBehaviour
     {
         [Tooltip("Roots (by name) whose renderers may be hidden. Built by ArenaBuilder under 'Arena'.")]
-        public string[] rootNames = { "WallVisuals", "Pillars" };
+        public string[] rootNames = { "WallVisuals", "Pillars", "Decor" };
         [Tooltip("Sample heights on each fighter (feet / body / head).")]
         public float[] heights = { 0.2f, 1f, 1.7f };
         [Tooltip("Bounds are grown by this much so the fighter's width counts too (CharacterController radius).")]

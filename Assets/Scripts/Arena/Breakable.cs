@@ -6,7 +6,7 @@ namespace KitFight
 {
     /// <summary>
     /// Prop that shatters when an attack's hit scan reaches it: no damage, no hit-stop/shake, and it never
-    /// interrupts the attacker. Props with healAmount > 0 drop a HealthPickup when broken.
+    /// interrupts the attacker. Props with healAmount or staminaAmount > 0 drop a Pickup potion when broken.
     /// Commands: Break(fromPosition), ResetObject(). GameManager resets all of them every round.
     /// </summary>
     public class Breakable : MonoBehaviour
@@ -25,8 +25,10 @@ namespace KitFight
         public float shrinkTime = 0.5f;
 
         [Header("Loot")]
-        [Tooltip("Health restored by the potion this prop drops; 0 = drops nothing.")]
+        [Tooltip("Health restored by the potion this prop drops; 0 = no health potion.")]
         public float healAmount;
+        [Tooltip("Stamina restored by the potion this prop drops; 0 = no stamina potion.")]
+        public float staminaAmount;
         [Tooltip("Potion model for the pickup. Empty = a glowing sphere.")]
         public GameObject potionModel;
 
@@ -77,7 +79,8 @@ namespace KitFight
             StopAllCoroutines();
             StartCoroutine(FadeDebris(pieces));
 
-            if (healAmount > 0f) HealthPickup.Spawn(transform.position, healAmount, potionModel);
+            if (healAmount > 0f) Pickup.Spawn(transform.position, Pickup.Kind.Health, healAmount, potionModel);
+            else if (staminaAmount > 0f) Pickup.Spawn(transform.position, Pickup.Kind.Stamina, staminaAmount, potionModel);
         }
 
         public void ResetObject()

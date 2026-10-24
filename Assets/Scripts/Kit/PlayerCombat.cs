@@ -181,6 +181,12 @@ namespace KitFight
             else queued = true;
         }
 
+        /// <summary>Potion / pickup: adds stamina up to the maximum.</summary>
+        public void RestoreStamina(float amount)
+        {
+            if (!dead) stamina = Mathf.Min(maxStamina, stamina + amount);
+        }
+
         /// <summary>Charged special: costs stamina, winds up for specialChargeTime, then a wide knockdown blow.</summary>
         public void SpecialAttack()
         {

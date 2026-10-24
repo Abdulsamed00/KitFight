@@ -4,33 +4,43 @@ using UnityEngine;
 namespace KitFight
 {
     /// <summary>
-    /// Health potion dropped by some breakables. The first living, hurt fighter that walks over it is healed.
-    /// Spawned at runtime by Breakable; GameManager clears all of them at the start of every round.
+    /// Potion dropped by some breakables: Health (green) or Stamina (gold). The first living fighter that walks
+    /// over it and still needs it gets the amount. Spawned at runtime by Breakable; GameManager clears all of
+    /// them at the start of every round.
     /// </summary>
-    public class HealthPickup : MonoBehaviour
+    public class Pickup : MonoBehaviour
     {
-        public static readonly List<HealthPickup> All = new List<HealthPickup>();
+        public enum Kind { Health, Stamina }
 
-        public float amount = 20f;
+        public static readonly List<Pickup> All = new List<Pickup>();
+
+        public Kind kind;
+        public float amount = 40f;
         public float pickupRadius = 0.9f;
         public float lifetime = 12f;
         public float spawnDelay = 0.35f;    // can't be grabbed while it pops out of the debris
         public float bobHeight = 0.12f;
         public float spinSpeed = 120f;
 
+        static readonly Color HealthColor = new Color(0.3f, 1f, 0.45f);
+        static readonly Color StaminaColor = new Color(1f, 0.78f, 0.25f);
+
         Transform visual;
         float age;
         const float BaseY = 0.55f;
+
+        public Color Tint => kind == Kind.Health ? HealthColor : StaminaColor;
 
         void OnEnable() => All.Add(this);
         void OnDisable() => All.Remove(this);
 
         /// <summary>Creates a pickup at pos; uses the potion model if given, otherwise a glowing sphere.</summary>
-        public static HealthPickup Spawn(Vector3 pos, float amount, GameObject model)
+        public static Pickup Spawn(Vector3 pos, Kind kind, float amount, GameObject model)
         {
-            var root = new GameObject("HealthPickup");
+            var root = new GameObject(kind + "Pickup");
             root.transform.position = pos;
-            var p = root.AddComponent<HealthPickup>();
+            var p = root.AddComponent<Pickup>();
+            p.kind = kind;
             p.amount = amount;
 
             GameObject v;
@@ -40,18 +50,18 @@ namespace KitFight
                 v = GameObject.CreatePrimitive(PrimitiveType.Sphere);
                 v.transform.SetParent(root.transform, false);
                 v.transform.localScale = Vector3.one * 0.35f;
-                v.GetComponent<Renderer>().material.color = new Color(0.3f, 1f, 0.45f);
+                v.GetComponent<Renderer>().material.color = p.Tint;
             }
             foreach (var c in v.GetComponentsInChildren<Collider>()) Destroy(c);
             v.transform.localPosition = Vector3.up * BaseY;
             p.visual = v.transform;
 
-            // Soft green light so the drop reads from the fight camera.
+            // Soft light in the potion's colour so the drop reads from the fight camera.
             var light = new GameObject("Glow").AddComponent<Light>();
             light.transform.SetParent(root.transform, false);
             light.transform.localPosition = Vector3.up * 0.8f;
             light.type = LightType.Point;
-            light.color = new Color(0.3f, 1f, 0.45f);
+            light.color = p.Tint;
             light.range = 2.5f;
             light.intensity = 2f;
             return p;
@@ -70,11 +80,13 @@ namespace KitFight
 
             foreach (var pc in PlayerCombat.All)
             {
-                if (pc.IsDead || pc.Health.Fraction >= 1f) continue;
+                if (pc.IsDead) continue;
+                if (kind == Kind.Health ? pc.Health.Fraction >= 1f : pc.StaminaFraction >= 1f) continue;
                 var d = Vector3.ProjectOnPlane(pc.transform.position - transform.position, Vector3.up);
                 if (d.magnitude > pickupRadius) continue;
-                pc.Health.Heal(amount);
-                HitFeedback.Heal(transform.position + Vector3.up * 0.6f);
+                if (kind == Kind.Health) pc.Health.Heal(amount);
+                else pc.RestoreStamina(amount);
+                HitFeedback.Pickup(transform.position + Vector3.up * 0.6f, Tint);
                 Destroy(gameObject);
                 return;
             }

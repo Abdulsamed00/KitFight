@@ -47,8 +47,8 @@ namespace KitFight
             SlowMo(0.5f, 0.2f);
         }
 
-        /// <summary>Green sparkle rising from a picked-up health potion.</summary>
-        public static void Heal(Vector3 point) => Sparks(point, Vector3.up, new Color(0.35f, 1f, 0.5f), 24, 3f, -0.4f);
+        /// <summary>Sparkle rising from a picked-up potion, in the potion's colour.</summary>
+        public static void Pickup(Vector3 point, Color color) => Sparks(point, Vector3.up, color, 24, 3f, -0.4f);
 
         /// <summary>Burst around a fighter when a charged special attack is released.</summary>
         public static void SpecialRelease(Vector3 point, Vector3 dir, Color color)
