@@ -72,4 +72,6 @@ Animation speeds: attack speed lives in `KitSpec.attackSpeed`; reaction/dodge st
 
 Done: 2-player lobby/match flow, hit/block/death, 5 kits, shared camera, gamepad input, arena with breakables and spike traps (trap damage, unblockable, break/reset verified in Play mode; the trap's timed cycle in a real match was not). Hit, block and kill verified in Play mode through code; gamepad and the IMGUI HUD were not tested by hand (no controller attached in the test session).
 
-Next: hand-tune per-kit `hitStart`/range/damage, dodge, strafe/lock-on animations, hit VFX (PixPlays), proper UI, online multiplayer (see the `unity:setup-multiplayer-services` skill).
+Also done: stamina + charged special (hit, cancel-on-hit, guard crush, stamina gate verified in Play mode through code), dagger dash attack (verified), health potions (drop verified; the walk-over heal needs `GameManager.IsFighting` and was not exercised by the code test), UI Toolkit HUD (lobby + fight layouts checked from Game view screenshots), Blender decor props. Keyboard input could not be simulated from the MCP (Input System ignores queued events while the Editor is unfocused), so a full match was not played by hand.
+
+Next: hand-tune per-kit `hitStart`/range/damage, special balance, strafe/lock-on animations, hit VFX (PixPlays), pause/settings menus, online multiplayer (see the `unity:setup-multiplayer-services` skill).
