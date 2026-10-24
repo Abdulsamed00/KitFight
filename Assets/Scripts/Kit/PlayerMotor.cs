@@ -139,9 +139,9 @@ namespace KitFight
 
             if (!locked)
             {
+                // Without lock-on an idle fighter keeps facing where it last moved.
                 if (attacking || blocking || IsLockedOn) TurnTowards(FlatToTarget());
                 else if (dir != Vector3.zero) TurnTowards(dir);
-                else TurnTowards(FlatToTarget());
             }
 
             if (cc.isGrounded && verticalVel < 0f) verticalVel = -2f;
