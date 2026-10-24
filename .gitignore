@@ -22,3 +22,6 @@ sysinfo.txt
 *.unitypackage
 crashlytics-build.properties
 KitFight/
+
+# Blender auto-backups
+*.blend1
