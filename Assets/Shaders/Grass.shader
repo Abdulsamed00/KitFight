@@ -10,8 +10,8 @@ Shader "KitFight/Grass"
         _BladeHeight ("Blade Height (m, set by GrassField)", Float) = 0.45
         _WindStrength ("Wind Strength", Float) = 0.08
         _WindSpeed ("Wind Speed", Float) = 1.6
-        _PushRadius ("Push Radius", Float) = 0.9
-        _PushStrength ("Push Strength", Float) = 0.45
+        _PushRadius ("Push Radius", Float) = 1.1
+        _PushStrength ("Push Strength", Float) = 0.6
     }
 
     SubShader

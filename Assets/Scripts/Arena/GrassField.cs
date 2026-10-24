@@ -18,8 +18,8 @@ namespace KitFight
         public Vector2 halfSize = new Vector2(21.5f, 21.5f);
         [Tooltip("Jittered grid spacing between clumps (m).")]
         public float spacing = 0.42f;
-        public float minScale = 0.75f;
-        public float maxScale = 1.3f;
+        public float minScale = 0.6f;
+        public float maxScale = 1.05f;
         [Tooltip("No clump where a collider overlaps a sphere of this radius just above the floor.")]
         public float clearRadius = 0.3f;
         public int seed = 17;
