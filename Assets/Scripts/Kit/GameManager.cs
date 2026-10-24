@@ -34,14 +34,21 @@ namespace KitFight
         readonly List<InputSource> sources = new List<InputSource>();
         readonly Dictionary<Gamepad, InputSource> padSources = new Dictionary<Gamepad, InputSource>();
 
+        /// <summary>True only while a round is being fought (arena hazards run only then).</summary>
+        public static bool IsFighting => instance && instance.phase == Phase.Fight;
+        static GameManager instance;
+
         Phase phase = Phase.Lobby;
         float timer;
         int round = 1;
         string banner = "";
         float fightBannerUntil;
 
+        void OnDestroy() { if (instance == this) instance = null; }
+
         void Awake()
         {
+            instance = this;
             sources.Add(new InputSource(InputSource.Kind.Keyboard1));
             sources.Add(new InputSource(InputSource.Kind.Keyboard2));
 
@@ -85,6 +92,7 @@ namespace KitFight
                 s.motor.Teleport(spawnPositions[i], Quaternion.LookRotation(dir));
                 s.input.controlEnabled = enableControl;
             }
+            foreach (var b in Breakable.All) b.ResetObject();
         }
 
         void StartRound()
