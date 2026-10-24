@@ -61,6 +61,8 @@
 
             <ui:Label name="p1-tag" text="P1" class="fighter-tag p1" picking-mode="Ignore" />
             <ui:Label name="p2-tag" text="P2" class="fighter-tag p2" picking-mode="Ignore" />
+            <ui:Label name="p1-pop" text="PARRY!" class="pop" picking-mode="Ignore" />
+            <ui:Label name="p2-pop" text="PARRY!" class="pop" picking-mode="Ignore" />
 
             <ui:VisualElement class="legend-row" picking-mode="Ignore">
                 <ui:Label name="p1-legend" class="legend p1" />

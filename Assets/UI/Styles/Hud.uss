@@ -120,6 +120,17 @@
 }
 .fighter-tag.p1 { color: var(--kf-p1); }
 .fighter-tag.p2 { color: var(--kf-p2); }
+/* Floating "PARRY!" above a fighter for a moment after a successful parry. */
+.pop {
+    position: absolute;
+    font-size: 40px;
+    color: var(--kf-stamina-ready);
+    -unity-text-align: middle-center;
+    -unity-text-outline-width: 2px;
+    -unity-text-outline-color: var(--kf-ink);
+    letter-spacing: 3px;
+}
+
 /* The opponent is locked on to this fighter. */
 .fighter-tag.targeted { border-width: 2px; border-color: var(--kf-gold); background-color: var(--kf-panel); }
 

@@ -33,6 +33,11 @@ namespace KitFight
         public float guardRecovery = 15f;      // guard damage recovered per second when not blocking
         public float guardBreakStun = 0.9f;
 
+        [Header("Parry: a frontal hit in the first moments of a fresh block press")]
+        public float parryWindow = 0.18f;
+        public float parryCooldown = 0.5f;      // after a missed window; a successful parry resets it
+        public float parryStun = 0.9f;          // attacker's stun (Stunned state, same speed as a guard break)
+
         [Header("Dodge")]
         public float dodgeDuration = 0.45f;     // control is locked this long (clip is sped up and blended out)
         public float dodgeInvulnerable = 0.3f;  // i-frames from the start of the dodge
@@ -59,6 +64,9 @@ namespace KitFight
         public float StaminaFraction => Mathf.Clamp01(stamina / maxStamina);
         public bool CanSpecial => stamina >= specialCost;
         public bool IsBlocking => blocking;
+        public bool IsParrying => parryTimer > 0f;
+        /// <summary>Time.time of this fighter's last successful parry (HUD popup).</summary>
+        public float LastParryTime { get; private set; } = -10f;
         public bool IsDead => dead;
         public bool IsDodging => dodgeTimer > 0f;
         public bool IsDown => downTimer > 0f;
@@ -84,6 +92,7 @@ namespace KitFight
         bool hasUpperLayer;
         PlayerTint tint;
         float stamina;
+        float parryTimer, parryCooldownTimer;
         int special;            // 0 none, 1 charging, 2 striking
         float specialTimer;
         bool specialHitDone;
@@ -127,6 +136,7 @@ namespace KitFight
             ClearActions();
             dead = false;
             stunTimer = blockReactTimer = 0f;
+            parryTimer = parryCooldownTimer = 0f;
             dodgeTimer = dodgeCooldownTimer = 0f;
             hitStopTimer = 0f;
             downTimer = guardDamage = 0f;
@@ -187,8 +197,16 @@ namespace KitFight
 
         public void SetBlock(bool held)
         {
+            bool pressed = held && !blockHeld;
             blockHeld = held;
-            if (held) TryStartBlock();
+            if (!held) return;
+            TryStartBlock();
+            // Only a fresh press opens the parry window (holding block or re-entering it after an action does not).
+            if (pressed && blocking && parryCooldownTimer <= 0f)
+            {
+                parryTimer = parryWindow;
+                parryCooldownTimer = parryWindow + parryCooldown;
+            }
         }
 
         /// <summary>Dash + i-frames. moveInput is the stick/key vector; zero = step back (away from the opponent when locked on).</summary>
@@ -348,6 +366,7 @@ namespace KitFight
 
             bool guarded = !unblockable && blocking && Vector3.Angle(transform.forward, -away) <= blockAngle * 0.5f;
             var point = transform.position + Vector3.up * 1.2f - away * 0.35f;
+            if (guarded && parryTimer > 0f && attacker) { Parry(attacker, point, away); return; }
             if (guarded)
             {
                 HitFeedback.Hit(point, away, damage, true);
@@ -429,6 +448,36 @@ namespace KitFight
             if (anim) anim.CrossFadeInFixedTime("Stunned", 0.05f);
         }
 
+        /// <summary>Well-timed block: no damage, guard restored, the attacker is stunned (even out of a special).</summary>
+        void Parry(PlayerCombat attacker, Vector3 point, Vector3 away)
+        {
+            parryTimer = parryCooldownTimer = 0f;
+            guardDamage = 0f;
+            LastParryTime = Time.time;
+            StopTime(attacker, 0.12f);
+            HitFeedback.Parry(point, away);
+            if (anim && kit != null && kit.blockHitClip) anim.CrossFadeInFixedTime("BlockHit", 0.03f);
+            blockReactTimer = kit != null && kit.blockHitClip ? kit.blockHitClip.length * 0.6f : 0.2f;
+            attacker.GetParried(-away);
+        }
+
+        /// <summary>Our swing was parried: the action is cancelled and we are stunned.</summary>
+        void GetParried(Vector3 pushDir)
+        {
+            if (dead || downTimer > 0f) return;
+            step = -1;
+            queued = false;
+            EndSpecial();
+            ClearUpper();
+            StopBlock(false);
+            motor.attacking = false;
+            motor.locked = true;
+            motor.AddImpulse(pushDir * 2.5f);
+            stunTimer = parryStun;
+            if (tint) tint.Flash(0.25f);
+            if (anim) anim.CrossFadeInFixedTime("Stunned", 0.05f);
+        }
+
         /// <summary>Round won: celebrate until the next ResetFighter.</summary>
         public void Celebrate()
         {
@@ -491,6 +540,8 @@ namespace KitFight
             }
 
             if (dodgeCooldownTimer > 0f) dodgeCooldownTimer -= Time.deltaTime;
+            if (parryTimer > 0f) parryTimer -= Time.deltaTime;
+            if (parryCooldownTimer > 0f) parryCooldownTimer -= Time.deltaTime;
             if (special == 0) stamina = Mathf.Min(maxStamina, stamina + staminaRegen * Time.deltaTime);
             if (guardDamage > 0f && !blocking) guardDamage = Mathf.Max(0f, guardDamage - guardRecovery * Time.deltaTime);
 

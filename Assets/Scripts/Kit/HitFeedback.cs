@@ -39,6 +39,14 @@ namespace KitFight
             }
         }
 
+        /// <summary>Golden burst + short slow-mo for a successful parry.</summary>
+        public static void Parry(Vector3 point, Vector3 dir)
+        {
+            FightCamera.Shake(0.1f, 0.18f);
+            Sparks(point, -dir, new Color(1f, 0.85f, 0.35f), 36, 7f);
+            SlowMo(0.5f, 0.2f);
+        }
+
         /// <summary>Green sparkle rising from a picked-up health potion.</summary>
         public static void Heal(Vector3 point) => Sparks(point, Vector3.up, new Color(0.35f, 1f, 0.5f), 24, 3f, -0.4f);
 
