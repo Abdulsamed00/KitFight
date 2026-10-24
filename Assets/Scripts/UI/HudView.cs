@@ -12,11 +12,13 @@ namespace KitFight
     {
         [Tooltip("Health trail catches up at this fraction per second after a hit.")]
         public float trailSpeed = 0.6f;
+        [Tooltip("How long the PARRY! popup stays above a fighter.")]
+        public float parryPopTime = 0.9f;
 
         class PlayerUI
         {
             public VisualElement panel, health, trail, stamina, guard, staminaBar;
-            public Label name, kit, tag, lockBadge;
+            public Label name, kit, tag, lockBadge, pop;
             public PlayerMotor motor;
             public VisualElement[] pips;
             public VisualElement card;
@@ -56,6 +58,7 @@ namespace KitFight
                 u.pips = u.panel.Query(className: "pip").ToList().ToArray();
                 u.tag = root.Q<Label>(p + "-tag");
                 u.lockBadge = u.panel.Q<Label>("lock");
+                u.pop = root.Q<Label>(p + "-pop");
                 u.legend = root.Q<Label>(p + "-legend");
 
                 u.card = root.Q(p + "-card");
@@ -127,6 +130,15 @@ namespace KitFight
             Show(u.legend, phase == MatchPhase.Countdown || phase == MatchPhase.Fight);
 
             PlaceTag(u.tag, gm.Fighter(i).position + Vector3.up * 2.25f);
+
+            // PARRY! rises and fades above the fighter that parried.
+            float age = Time.time - c.LastParryTime;
+            if (age < parryPopTime)
+            {
+                PlaceTag(u.pop, gm.Fighter(i).position + Vector3.up * (2.7f + age * 0.6f));
+                u.pop.style.opacity = 1f - Mathf.Clamp01((age - parryPopTime * 0.5f) / (parryPopTime * 0.5f));
+            }
+            else Show(u.pop, false);
         }
 
         void PlaceTag(Label tag, Vector3 world)
@@ -179,6 +191,7 @@ namespace KitFight
             u.card.EnableInClassList("joined", joined);
             u.card.EnableInClassList("ready", ready);
             Show(u.tag, false);
+            Show(u.pop, false);
 
             if (!joined)
             {
