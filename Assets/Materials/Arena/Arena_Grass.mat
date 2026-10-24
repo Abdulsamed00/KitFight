@@ -27,7 +27,9 @@ Material:
     m_Floats:
     - _BladeHeight: 0.45
     - _PushRadius: 1.1
-    - _PushStrength: 0.6
+    - _PushStrength: 0.22
+    - _RustleSpeed: 13
+    - _RustleStrength: 0.14
     - _WindSpeed: 1.6
     - _WindStrength: 0.08
     m_Colors:
