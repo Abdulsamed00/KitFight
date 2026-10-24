@@ -80,7 +80,7 @@
     margin: 0 4px;
     border-width: 2px;
     border-color: var(--kf-gold-dim);
-    border-radius: 10px;
+    border-radius: 3px;
     background-color: var(--kf-panel-soft);
     rotate: 45deg;
 }
@@ -116,7 +116,7 @@
     justify-content: space-between;
 }
 .legend {
-    max-width: 48%;
+    width: 44%;
     font-size: 15px;
     color: var(--kf-muted);
     white-space: normal;
@@ -131,7 +131,8 @@
 
 .center {
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    padding-top: 15%;           /* above the fighters, below the top bar */
 }
 .banner {
     font-size: 72px;
