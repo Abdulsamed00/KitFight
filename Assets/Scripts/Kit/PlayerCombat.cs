@@ -180,7 +180,7 @@ namespace KitFight
             special = 1;
             specialTimer = 0f;
             specialHitDone = false;
-            motor.FaceOpponent();
+            motor.FaceForAction();
             motor.locked = true;
             if (anim) anim.CrossFadeInFixedTime("SpecialCharge", 0.1f);
         }
@@ -191,17 +191,17 @@ namespace KitFight
             if (held) TryStartBlock();
         }
 
-        /// <summary>Dash + i-frames. moveInput is the stick/key vector; zero = step back from the opponent.</summary>
+        /// <summary>Dash + i-frames. moveInput is the stick/key vector; zero = step back (away from the opponent when locked on).</summary>
         public void Dodge(Vector2 moveInput)
         {
             if (Incapacitated || step >= 0 || special > 0 || dodgeTimer > 0f || dodgeCooldownTimer > 0f) return;
 
             var dir = motor.WorldDirection(moveInput);
-            if (dir == Vector3.zero) dir = -motor.DirectionToOpponent();
+            if (dir == Vector3.zero && motor.IsLockedOn) dir = -motor.DirectionToOpponent();
             if (dir == Vector3.zero) dir = -transform.forward;
 
             StopBlock(false);
-            motor.FaceOpponent();   // directional clips are played relative to the opponent
+            if (motor.IsLockedOn) motor.FaceOpponent();   // locked: directional clips relative to the opponent
             motor.locked = true;
             motor.AddImpulse(dir * dodgeSpeed, dodgeDecay);
             dodgeTimer = dodgeDuration;
@@ -241,10 +241,9 @@ namespace KitFight
             if (motor)
             {
                 motor.attacking = true;
-                motor.FaceOpponent();
-                // Step into the swing for weight (heavier kits lunge further), but never shove through the opponent.
-                if (motor.DistanceToOpponent() > 1.2f)
-                    motor.AddImpulse(motor.DirectionToOpponent() * Mathf.Lerp(3f, 5.5f, Mathf.InverseLerp(7f, 24f, kit.damage)));
+                motor.FaceForAction();
+                // Step into the swing for weight (heavier kits lunge further).
+                motor.Lunge(Mathf.Lerp(3f, 5.5f, Mathf.InverseLerp(7f, 24f, kit.damage)));
             }
             if (!anim) return;
             anim.SetFloat(AttackSpeedHash, kit.attackSpeed);
@@ -297,7 +296,7 @@ namespace KitFight
             specialTimer += Time.deltaTime;
             if (special == 1)
             {
-                motor.FaceOpponent();
+                if (motor.IsLockedOn) motor.FaceOpponent();
                 // Pulsing glow that speeds up as the charge fills.
                 float k = specialTimer / specialChargeTime;
                 if (tint) tint.SetGlow(Mathf.Lerp(0.3f, 1f, k) * (0.75f + 0.25f * Mathf.Sin(specialTimer * Mathf.Lerp(8f, 30f, k))));
@@ -306,7 +305,7 @@ namespace KitFight
                 special = 2;
                 specialTimer = 0f;
                 if (tint) tint.SetGlow(0f);
-                if (motor.DistanceToOpponent() > 1.2f) motor.AddImpulse(motor.DirectionToOpponent() * 6f);
+                motor.Lunge(6f);
                 if (anim) anim.CrossFadeInFixedTime("SpecialAttack", 0.05f);
                 return;
             }

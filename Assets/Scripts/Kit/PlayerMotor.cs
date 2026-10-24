@@ -81,11 +81,30 @@ namespace KitFight
             impulse = Vector3.zero;
         }
 
-        /// <summary>Snap to face the opponent (used when a swing starts).</summary>
+        /// <summary>Snap to face the opponent.</summary>
         public void FaceOpponent()
         {
             var f = FlatToTarget();
             if (f.sqrMagnitude > 0.001f) transform.rotation = Quaternion.LookRotation(f);
+        }
+
+        /// <summary>
+        /// Snap facing when a swing/special starts: the opponent when locked on, otherwise the stick direction
+        /// (no input = keep the current facing).
+        /// </summary>
+        public void FaceForAction()
+        {
+            if (IsLockedOn) { FaceOpponent(); return; }
+            var d = WorldDirection(moveInput);
+            if (d != Vector3.zero) transform.rotation = Quaternion.LookRotation(d);
+        }
+
+        /// <summary>Step forward into a swing, but never shove through an opponent standing right in front.</summary>
+        public void Lunge(float speed)
+        {
+            var to = FlatToTarget();
+            if (to.sqrMagnitude > 0.001f && to.magnitude < 1.2f && Vector3.Angle(transform.forward, to) < 60f) return;
+            AddImpulse(transform.forward * speed);
         }
 
         Vector3 FlatToTarget()
@@ -140,8 +159,9 @@ namespace KitFight
             if (!locked)
             {
                 // Without lock-on an idle fighter keeps facing where it last moved.
-                if (attacking || blocking || IsLockedOn) TurnTowards(FlatToTarget());
-                else if (dir != Vector3.zero) TurnTowards(dir);
+                // Unlocked swings and blocks keep the facing they started with (aimed with the stick).
+                if (IsLockedOn) TurnTowards(FlatToTarget());
+                else if (dir != Vector3.zero && !attacking && !blocking) TurnTowards(dir);
             }
 
             if (cc.isGrounded && verticalVel < 0f) verticalVel = -2f;
