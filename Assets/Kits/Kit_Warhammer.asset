@@ -30,3 +30,4 @@ MonoBehaviour:
   knockback: 6.5
   attackSpeed: 1.05
   moveSpeedMultiplier: 0.85
+  dashAttack: 0
