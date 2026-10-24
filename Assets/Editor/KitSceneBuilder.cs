@@ -258,8 +258,7 @@ namespace KitFight.EditorTools
             var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
             ground.name = "Ground";
             ground.transform.localScale = new Vector3(6f, 1f, 6f); // 60 x 60
-            var groundMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Ground.mat");
-            if (groundMat) ground.GetComponent<Renderer>().sharedMaterial = groundMat;
+            ground.GetComponent<Renderer>().sharedMaterial = ArenaBuilder.GroundMaterial();
 
             var walls = new GameObject("Walls").transform;
             const float half = 22f, h = 10f, t = 2f;

@@ -145,6 +145,7 @@ namespace KitFight.EditorTools
                 MakeSpikeTrap(traps, $"SpikeTrap_{i}", trapSpots[i], metal, steel);
 
             BuildDecor(arena, spawns, stone, wood, metal);
+            BuildGrass(arena);
 
             Debug.Log($"KitFight: arena built ({n} breakables ({healers} health / {staminas} stamina potions), {trapSpots.Length} spike traps, models: {(HasModel("SM_ArenaWall_01") ? "FBX" : "primitive fallback")})");
         }
@@ -257,6 +258,116 @@ namespace KitFight.EditorTools
                 }
                 MarkStatic(go);
                 if (model.Contains("Brazier")) AddFireLight(go.transform, size.y);
+            }
+        }
+
+        /// <summary>Instanced grass over the floor (after props/traps exist, so their spots stay bare).</summary>
+        static void BuildGrass(Transform arena)
+        {
+            var mesh = LoadMesh("SM_GrassClump_01");
+            var shader = Shader.Find("KitFight/Grass");
+            if (!mesh || !shader) { Debug.LogWarning("Arena: grass skipped (SM_GrassClump_01 or KitFight/Grass shader missing)"); return; }
+
+            Directory.CreateDirectory(MatDir);
+            string path = MatDir + "/Arena_Grass.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (!mat) { mat = new Material(shader); AssetDatabase.CreateAsset(mat, path); }
+            mat.shader = shader;
+            mat.enableInstancing = true;
+            mat.SetColor("_BaseColor", new Color(0.13f, 0.25f, 0.08f));
+            mat.SetColor("_TipColor", new Color(0.52f, 0.70f, 0.28f));
+            EditorUtility.SetDirty(mat);
+
+            var go = new GameObject("Grass");
+            go.transform.SetParent(arena, false);
+            var field = go.AddComponent<GrassField>();
+            field.mesh = mesh;
+            field.material = mat;
+            field.Build();
+            Debug.Log($"KitFight: grass field with {field.Count} clumps");
+        }
+
+        static Mesh LoadMesh(string model)
+        {
+            string path = ModelDir + model + ".fbx";
+            if (!LoadModel(model)) return null;
+            foreach (var o in AssetDatabase.LoadAllAssetsAtPath(path))
+                if (o is Mesh m) return m;
+            return null;
+        }
+
+        /// <summary>
+        /// Grass-and-dirt floor: a tileable value-noise texture generated once into Assets/Materials/Arena
+        /// (green with darker/lighter variation and a few worn dirt patches), on URP Lit.
+        /// </summary>
+        public static Material GroundMaterial()
+        {
+            Directory.CreateDirectory(MatDir);
+            string texPath = MatDir + "/T_GroundGrass.png";
+            if (!File.Exists(texPath))
+            {
+                const int size = 512;
+                var tex = new Texture2D(size, size, TextureFormat.RGB24, false);
+                var dark = new Color(0.20f, 0.30f, 0.12f);
+                var light = new Color(0.33f, 0.45f, 0.19f);
+                var dirt = new Color(0.40f, 0.33f, 0.22f);
+                for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++)
+                {
+                    float u = x / (float)size, v = y / (float)size;
+                    float fine = Fbm(u, v, 8, 4, 1);
+                    float patch = Fbm(u, v, 3, 2, 7);
+                    var c = Color.Lerp(dark, light, fine);
+                    c = Color.Lerp(c, dirt, Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.6f, 0.75f, patch)));
+                    tex.SetPixel(x, y, c);
+                }
+                File.WriteAllBytes(texPath, tex.EncodeToPNG());
+                Object.DestroyImmediate(tex);
+                AssetDatabase.ImportAsset(texPath);
+            }
+            var groundTex = AssetDatabase.LoadAssetAtPath<Texture2D>(texPath);
+
+            var m = Mat("Arena_Ground", Color.white);
+            if (m.HasProperty("_BaseMap")) { m.SetTexture("_BaseMap", groundTex); m.SetTextureScale("_BaseMap", new Vector2(10f, 10f)); }
+            if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.05f);
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
+        /// <summary>Tileable fractal value noise in 0..1 (lattice wraps every 'period' cells).</summary>
+        static float Fbm(float u, float v, int period, int octaves, int seed)
+        {
+            float sum = 0f, amp = 0.5f, norm = 0f;
+            for (int o = 0; o < octaves; o++)
+            {
+                sum += ValueNoise(u * period, v * period, period, seed + o * 31) * amp;
+                norm += amp;
+                amp *= 0.5f;
+                period *= 2;
+            }
+            return sum / norm;
+        }
+
+        static float ValueNoise(float x, float y, int period, int seed)
+        {
+            int x0 = Mathf.FloorToInt(x), y0 = Mathf.FloorToInt(y);
+            float fx = x - x0, fy = y - y0;
+            fx = fx * fx * (3f - 2f * fx);
+            fy = fy * fy * (3f - 2f * fy);
+            float a = Hash(x0, y0, period, seed), b = Hash(x0 + 1, y0, period, seed);
+            float c = Hash(x0, y0 + 1, period, seed), d = Hash(x0 + 1, y0 + 1, period, seed);
+            return Mathf.Lerp(Mathf.Lerp(a, b, fx), Mathf.Lerp(c, d, fx), fy);
+        }
+
+        static float Hash(int x, int y, int period, int seed)
+        {
+            x = ((x % period) + period) % period;
+            y = ((y % period) + period) % period;
+            unchecked
+            {
+                int h = x * 374761393 + y * 668265263 + seed * 1442695041;
+                h = (h ^ (h >> 13)) * 1274126177;
+                return (h & 0x7fffffff) / (float)int.MaxValue;
             }
         }
 
