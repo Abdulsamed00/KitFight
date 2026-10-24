@@ -42,8 +42,8 @@ namespace KitFight
         public float staminaRegen = 14f;        // per second, paused while the special runs
         public float specialCost = 60f;
         public float specialChargeTime = 0.9f;  // wind-up; a clean hit in this window cancels it (stamina is lost)
-        public float specialHitTime = 0.3f;     // after the charge, when the blow lands (matched to the SpecialAttack state speed)
-        public float specialRecoverTime = 0.75f;// after the charge, until control returns
+        public float specialHitTime = 0.4f;     // after the charge, when the blow lands (matched to the SpecialAttack state speed)
+        public float specialRecoverTime = 0.85f;// after the charge, until control returns
         public float specialBaseDamage = 18f;   // + kit damage
         public float specialRangeBonus = 0.8f;  // + kit range
         public float specialArc = 170f;

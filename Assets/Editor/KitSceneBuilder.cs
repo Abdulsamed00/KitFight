@@ -23,7 +23,7 @@ namespace KitFight.EditorTools
         const string PanelSettingsPath = "Assets/UI/Settings/KitFightPanel.asset";
         const string ThemePath = "Assets/UI/Settings/KitFightRuntime.tss";
         const float SpecialChargeSpeed = 1f;
-        const float SpecialAttackSpeed = 1f;
+        const float SpecialAttackSpeed = 2.2f; // Mixamo overhead strike: impact at 0.9 s of clip -> 0.41 s
 
         struct KitSpec
         {
